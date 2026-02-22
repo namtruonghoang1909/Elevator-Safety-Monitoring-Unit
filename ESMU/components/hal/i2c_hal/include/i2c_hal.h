@@ -29,28 +29,36 @@ typedef struct i2c_device_info_t {
 } i2c_device_info_t;
 
 /**
- * @brief Initialize an I2C bus
+ * @brief Initialize an I2C bus and assign/return its ID
  *
- * @param bus_id       Bus ID (0 or 1 for ESP32)
+ * @param bus_id_out   [in/out] Pointer to bus ID variable.
+ *                     - If *bus_id_out == 255 (or any invalid value), auto-assign first free bus
+ *                     - If *bus_id_out is valid (0 or 1), use that bus ID (if available)
  * @param sda_pin      GPIO for SDA
  * @param scl_pin      GPIO for SCL
- * @param clk_speed_hz Clock speed in Hz (e.g. 100000, 400000)
- * @return ESP_OK on success, error code otherwise
+ * @param clk_speed_hz Desired clock speed (0 = default)
+ * @return ESP_OK on success
+ *         ESP_ERR_INVALID_ARG / ESP_ERR_NOT_FOUND / etc. on failure
  */
-esp_err_t i2c_hal_init(uint8_t bus_id, gpio_num_t sda_pin, gpio_num_t scl_pin, uint32_t clk_speed_hz);
+esp_err_t i2c_hal_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_pin, uint32_t clk_speed_hz);
+
 
 /**
- * @brief Add an I2C device to a specific bus
+ * @brief Add a device to a bus and assign/return its internal device ID
  *
- * @param dev_id       Unique device ID (0 to MAX_DEVICES_NUM-1)
- * @param dev_addr     7-bit I2C address
- * @param dev_name     Device name (string, stored as pointer – must remain valid)
- * @param scl_speed_hz SCL frequency for this device (0 = use bus default)
- * @param on_bus_id    Which bus to attach to (0 or 1)
- * @return ESP_OK on success, error code otherwise
+ * @param dev_id_out   [out] Assigned device ID (written by function)
+ * @param dev_addr     7-bit slave address
+ * @param dev_name     Optional name (pointer stored – must remain valid)
+ * @param scl_speed_hz Device-specific SCL speed (0 = use bus default)
+ * @param on_bus_id    Target bus ID
+ * @return ESP_OK on success
+ *         ESP_ERR_* on failure
  */
-esp_err_t i2c_hal_add_device(uint8_t dev_id, uint8_t dev_addr, const char *dev_name,
-                             uint32_t scl_speed_hz, uint8_t on_bus_id);
+esp_err_t i2c_hal_add_device(uint8_t *dev_id_out,
+                             uint8_t dev_addr,
+                             const char *dev_name,
+                             uint32_t scl_speed_hz,
+                             uint8_t on_bus_id);
 
 /**
  * @brief Write a single byte to a register on a device
