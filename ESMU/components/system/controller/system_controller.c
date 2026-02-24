@@ -3,10 +3,11 @@
 #include "system_error.h"
 #include <stdbool.h>
 #include <string.h>
-#include "queue.h"
-#include "esp_log.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
+#include "esp_log.h"
 
 #define FSM_WARN_UNEXPECTED(evt) \
     ESP_LOGW(TAG, "Event %d ignored in state %d", evt, current_system_state)
@@ -31,8 +32,15 @@ static QueueHandle_t system_event_queue;
  * @param pvParameters Parameters for the task (not used)
  * @return void
  */
-void system_task(void *pvParameters);
+static void system_task(void *pvParameters);
 
+/**
+ * @brief 
+ * system intialization
+ *  - create event handler task
+ *  - initalize hardware
+ */
+static void system_init();
 /**
  * @brief
  * Handle a new system event
@@ -72,8 +80,8 @@ void system_report_error(system_error_id_t err_id) {
     // Implementation for reporting the error
     // This could involve logging the error, sending it to a monitoring system, etc.
     system_event_t evt = {
-        .event_id = SYSTEM_EVENT_ERROR,
-        .error_id = err_id
+        .id = SYSTEM_EVENT_ERROR,
+        .error = err_id
     };
     xQueueSend(system_event_queue, &evt, portMAX_DELAY);
 }    
@@ -82,8 +90,8 @@ void system_report_event(system_event_id_t event_id) {
     // Implementation for reporting the event
     // This could involve logging the event, notifying other system components, etc.
     system_event_t evt = {
-        .event_id = event_id,
-        .error_id = SYSTEM_ERROR_NONE,
+        .id = event_id,
+        .error = SYSTEM_ERROR_NONE,
     };
     xQueueSend(system_event_queue, &evt, portMAX_DELAY);
 }
@@ -103,6 +111,11 @@ static void system_task(void *pvParameters){
     }
 }
 
+static void system_init()
+{
+    xTaskCreate(system_task, "system_task", 4096, NULL, 5, NULL);
+    // hardware init() ...
+}
 static void system_event_handler(system_event_t new_event)
 {
     // Ignore all events except ERROR when in ERROR state
@@ -133,7 +146,7 @@ static void system_event_handler(system_event_t new_event)
         case SYSTEM_EVENT_INITIALIZED:
             ESP_LOGI(TAG, "System initialized event received");
             if(is_system_at_state(SYSTEM_STATE_INITIALIZING)){
-                connectivity_start(); 
+                //connectivity_start(); 
                 // system only initializes and performs telemetry \n
                 // when connectivity is configured(this will be checked in the connectivity_start() function)
                 // after the connectivity is started, telemetry can start
@@ -149,7 +162,7 @@ static void system_event_handler(system_event_t new_event)
             ESP_LOGI(TAG, "Start configuration event received");
             if(is_system_at_state(SYSTEM_STATE_MONITORING)){
                 // start web server task here
-                connectivity_stop();
+                //connectivity_stop();
                 // attempt to stop telemetry then stop wifi connection if task available
                 state_transition(SYSTEM_STATE_CONFIGURING);
             }
@@ -161,7 +174,7 @@ static void system_event_handler(system_event_t new_event)
         case SYSTEM_EVENT_DEVICE_CONFIGURATED: // user finishes configuration through web server
             ESP_LOGI(TAG, "Device configurated event received");
             if(is_system_at_state(SYSTEM_STATE_CONFIGURING)){
-                connectivity_start(); 
+                //connectivity_start(); 
                 // system only initializes and performs telemetry \n
                 // when connectivity is configured(this will be checked in the connectivity_start() function)
                 // after the connectivity is started, telemetry can start
@@ -177,7 +190,7 @@ static void system_event_handler(system_event_t new_event)
         case SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED:
             ESP_LOGI(TAG, "Elevator fault detected event received");
             if(is_system_at_state(SYSTEM_STATE_MONITORING)){
-                device_send_alert(); 
+                //device_send_alert(); 
                 // sms and mqtt for fatal faults, sms to phone and mqtt on emergency topic
                 // emergency topic only being sent when connected to broker
                 // sms to phone performs only when sms infos are configured
@@ -204,41 +217,22 @@ static void system_event_handler(system_event_t new_event)
 
 static void system_error_handler(system_error_id_t error_id) {
     switch (error_id) {
+        case SYSTEM_ERROR_NONE:
+        break;
         case SYSTEM_ERROR_MEMORY_ALLOCATION_FAILED:
+        break;
         case SYSTEM_ERROR_TASK_CREATION_FAILED:
+        break;
         case SYSTEM_ERROR_QUEUE_CREATION_FAILED:
+        break;
         case SYSTEM_ERROR_NVS_INIT_FAILED:
-            ESP_LOGE(TAG, "Critical boot error occurred: %d. System halt.", error_id);
-            // Critical boot errors - halt the system
-            while (1) {
-                vTaskDelay(portMAX_DELAY);
-            }
-            break;
-
+        break;
         case SYSTEM_ERROR_SENSOR_INIT_FAILED:
-            ESP_LOGE(TAG, "Sensor initialization failed: %d. Attempting recovery.", error_id);
-            // Attempt to reinitialize sensors
-            hardware_init();
-            state_transition(SYSTEM_STATE_HARDWARE_INITIALIZING);
-            break;
-
+        break;
         case SYSTEM_ERROR_ALERT_SUBSYSTEM_FAILED:
-            ESP_LOGE(TAG, "Alert subsystem failed: %d. Attempting recovery.", error_id);
-            // Attempt to restart alert subsystem
-            fault_detector_init();
-            state_transition(SYSTEM_STATE_MONITORING);
-            break;
-
+        break;
         case SYSTEM_ERROR_FAULT_STORAGE_FULL:
-            ESP_LOGE(TAG, "Fault storage full: %d. Clearing storage.", error_id);
-            // Clear fault storage
-            fault_storage_clear();
-            state_transition(SYSTEM_STATE_MONITORING);
-            break;
-
-        default:
-            ESP_LOGW(TAG, "Unhandled system error: %d", error_id);
-            break;
+        break;
     }
 }
 
