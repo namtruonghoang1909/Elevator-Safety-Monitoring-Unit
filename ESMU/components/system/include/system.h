@@ -22,4 +22,4 @@ typedef enum system_state_id_t {
  *      - event loop
  *      - xqueue storing system events
  */
-void system_init(void);
+void system_start(void);
