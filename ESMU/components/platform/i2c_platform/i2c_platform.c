@@ -11,6 +11,10 @@ static const char *TAG = "i2c_bus";
 static i2c_bus_info_t    bus[MAX_I2C_BUS_NUM]    = {{0}};
 static i2c_device_info_t device[MAX_DEVICES_NUM] = {{0}};
 
+// ─────────────────────────────────────────────
+// Bus & Device Management
+// ─────────────────────────────────────────────
+
 /**
  * @brief Initialize an I2C master bus and assign/return its ID
  *        (Changed function name from i2c_hal_init to i2c_bus_init for clarity)
@@ -97,9 +101,6 @@ esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_
     *found_count = 0;
     ESP_LOGI(TAG, "Scanning I2C bus %d (0x08–0x77)...", bus_id);
 
-    // Temporarily suppress NACK spam from i2c.master (restored at end)
-    esp_log_level_t old_level = esp_log_get_default_level();
-    esp_log_level_set("i2c.master", ESP_LOG_ERROR);
 
     for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
         esp_err_t ret = i2c_master_probe(bus[bus_id].bus_handle,
@@ -115,7 +116,6 @@ esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_
         }
     }
 
-    esp_log_level_set("i2c.master", old_level);
 
     if (*found_count == 0) {
         ESP_LOGW(TAG, "No I2C devices detected on bus %d", bus_id);
@@ -193,6 +193,9 @@ esp_err_t i2c_add_device(uint8_t *dev_id_out,
     return ESP_OK;
 }
 
+// ─────────────────────────────────────────────
+// Register-level Operations
+// ─────────────────────────────────────────────
 /**
  * @brief Write a single byte to a register on a device
  *        (Added register & value to error log for better debugging)
@@ -309,4 +312,78 @@ esp_err_t i2c_remove_device(uint8_t dev_id)
     }
 
     return ret;
+}
+
+// ─────────────────────────────────────────────
+// Low-level Byte / Bytes Operations
+// ─────────────────────────────────────────────
+esp_err_t i2c_write_byte(uint8_t dev_id, uint8_t value)
+{
+    if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
+        ESP_LOGE(TAG, "Device %d not initialized", dev_id);
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    esp_err_t ret = i2c_master_transmit(device[dev_id].dev_handle,
+                                        &value, 1,
+                                        pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Write single byte 0x%02X failed on dev %d: %s",
+                 value, dev_id, esp_err_to_name(ret));
+    }
+
+    return ret;
+}
+
+esp_err_t i2c_write_bytes(uint8_t dev_id, const uint8_t *data, size_t len)
+{
+    if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
+        ESP_LOGE(TAG, "Device %d not initialized", dev_id);
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (data == NULL || len == 0) {
+        ESP_LOGE(TAG, "Invalid data or length for write_bytes on dev %d", dev_id);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t ret = i2c_master_transmit(device[dev_id].dev_handle,
+                                        data, len,
+                                        pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Write %u bytes failed on dev %d: %s",
+                 (unsigned)len, dev_id, esp_err_to_name(ret));
+    }
+
+    return ret;
+}
+
+esp_err_t i2c_read_byte(uint8_t dev_id, uint8_t *out_val)
+{
+    if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL || out_val == NULL) {
+        ESP_LOGE(TAG, "Invalid params for read_byte on dev %d", dev_id);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    esp_err_t ret = i2c_master_transmit_receive(device[dev_id].dev_handle,
+                                                NULL, 0,           // no write
+                                                out_val, 1,
+                                                pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Read single byte failed on dev %d: %s",
+                 dev_id, esp_err_to_name(ret));
+    }
+
+    return ret;
+}
+
+esp_err_t i2c_read_bytes(uint8_t dev_id,
+                         uint8_t start_reg,
+                         uint8_t *buf,
+                         size_t len)
+{
+    // Reuse existing burst read implementation (same behavior)
+    return i2c_read_consecutive_regs(dev_id, start_reg, buf, len);
 }
