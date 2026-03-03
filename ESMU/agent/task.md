@@ -46,4 +46,22 @@ provide APIs for:
 - get_state
 
 refactor main.c to use this manager instead of raw calls.
+
+# task 05
+CONNECTIVITY TEST
+- implement test for connectivity with these credentials:
+    - wifi:
+        ssid = "Bakito Coffee L1"
+        password = "chucngonmieng"
+        auto_reconnect = true
+    - mqtt:
+        broker_uri = "mqtt://app.coreiot.io",
+        client_id = "ESMU_001",
+        username = "esmu_001",
+        password = "esmu",
+        port=1883,
+    - publish to a test topic to ("v1/devices/me/telemetry") on broker
+
+- add a short readme to provide a overview for the test and instructions
+
 --------------------

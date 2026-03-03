@@ -1,42 +1,41 @@
-# ESMU Connectivity Manager Implementation (Task 04) ✅ COMPLETED
+# ESMU Project Todo Management
 
-## Task
-Implement `connectivity_manager` to coordinate `wifi_sta` and `mqtt_manager`, ensuring stable connections in poor WiFi environments.
+This file tracks the overall project progress and the specific, approved steps for current task execution.
 
 ---
 
-## Phase 1: Create Component Structure ✅ COMPLETED
-- [x] Create `components/services/connectivity/connectivity_manager/include/` directory.
-- [x] Create `components/services/connectivity/connectivity_manager/connectivity_manager.c`.
-- [x] Create `components/services/connectivity/connectivity_manager/include/connectivity_manager.h`.
-- [x] Create `components/services/connectivity/connectivity_manager/CMakeLists.txt`.
+## I. GLOBAL PROJECT ROADMAP
+*Status of high-level project milestones.*
 
-## Phase 2: Implement Header (connectivity_manager.h) ✅ COMPLETED
-- [x] Define `connectivity_config_t` (WiFi and MQTT config combined).
-- [x] Define `connectivity_state_t` enum.
-- [x] Declare public APIs:
-  - `esp_err_t connectivity_manager_init(const connectivity_config_t *config)`
-  - `esp_err_t connectivity_manager_start(void)`
-  - `bool connectivity_manager_is_ready(void)`
-  - `int8_t connectivity_manager_get_rssi(void)`
-  - `connectivity_state_t connectivity_manager_get_state(void)`
+### 1. Drivers & Platform Layer
+- [x] **I2C Platform**: Multi-bus, thread-safe abstraction.
+- [x] **MPU6050 Driver**: Basic movement/gyro sensing (Verified in main).
+- [x] **SSD1306 Driver**: OLED display primitives (Verified in main).
+- [ ] **Unity Driver Tests**: Formalize driver verification in the `test/` folder.
 
-- NOTICE: uses connectivity_config_t instead of conn_mgr_config_t, connectivity_state_t instead of conn_mgr_state_t
+### 2. Connectivity Layer
+- [x] **Wifi Station**: Stable connection with auto-reconnect.
+- [x] **MQTT Manager**: Wrapper for telemetry and alerts.
+- [x] **Connectivity Manager**: High-level orchestrator.
+- [x] **Connectivity Tests**: Fully verified via Unity.
 
-## Phase 3: Implement Core Logic (connectivity_manager.c) ✅ COMPLETED
-- [x] Implement `connectivity_manager_task` (the orchestrator).
-- [x] Add the 5-second WiFi stability timer.
-- [x] Implement logic to automatically start/stop MQTT based on WiFi/RSSI state.
-- [x] Add detailed logging for state transitions.
+### 3. Service Layer (Abstraction)
+- [ ] **Display Service**: High-level UI management (status icons, messages).
+- [ ] **Motion Monitor**: Filters and processes raw MPU6050 data.
+- [ ] **Fault Detector**: Logic for detecting shakes and emergency stops.
 
-## Phase 4: Component Integration ✅ COMPLETED
-- [x] Create `CMakeLists.txt` for the component.
-- [x] Add the component to root `CMakeLists.txt`.
+### 4. System Layer
+- [ ] **System Controller**: Central FSM to coordinate all services.
 
-## Phase 5: Refactor main.c ✅ COMPLETED
-- [x] Replace individual WiFi/MQTT init calls with `connectivity_manager`.
-- [x] Test the automatic recovery by simulating a disconnect or moving to a weak signal area.
+---
 
-## Phase 6: Verification ✅ COMPLETED
-- [x] Build the project using PlatformIO.
-- [x] Verify that MQTT only starts after WiFi is stable.
+## II. ACTIVE TASK EXECUTION
+*Detailed sub-tasks for the current directive. **DO NOT START until approved by user.***
+
+### Current Task: Clean up and Commit Connectivity Stack
+- [ ] Revert `src/main.c` to a minimal NVS-only state.
+- [ ] Stage and commit all changes (drivers, connectivity, tests, docs).
+- [ ] Push the `feature/connectivity` branch to the remote.
+
+---
+**Note**: To approve a task, reply in the chat with "Approved" or provide feedback on specific sub-tasks.
