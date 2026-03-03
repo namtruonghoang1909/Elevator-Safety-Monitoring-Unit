@@ -46,6 +46,9 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
+static bool s_wifi_initialized = false;
+static esp_netif_t *s_sta_netif = NULL;
+
 esp_err_t wifi_sta_init(const wifi_sta_user_config_t *config)
 {
     if (config == NULL) {
@@ -53,34 +56,42 @@ esp_err_t wifi_sta_init(const wifi_sta_user_config_t *config)
     }
 
     s_config = *config;
-    s_wifi_event_group = xEventGroupCreate();
-
-    ESP_ERROR_CHECK(esp_netif_init());
     
-    // Check if event loop is already created
-    esp_err_t err = esp_event_loop_create_default();
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "Failed to create default event loop: %s", esp_err_to_name(err));
-        return err;
+    if (s_wifi_event_group == NULL) {
+        s_wifi_event_group = xEventGroupCreate();
     }
 
-    esp_netif_create_default_wifi_sta();
+    if (!s_wifi_initialized) {
+        esp_err_t err = esp_netif_init();
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGE(TAG, "Failed to init netif: %s", esp_err_to_name(err));
+            return err;
+        }
+        
+        err = esp_event_loop_create_default();
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+            ESP_LOGE(TAG, "Failed to create default event loop: %s", esp_err_to_name(err));
+            return err;
+        }
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+        s_sta_netif = esp_netif_create_default_wifi_sta();
 
-    esp_event_handler_instance_t instance_any_id;
-    esp_event_handler_instance_t instance_got_ip;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &event_handler,
-                                                        NULL,
-                                                        &instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-                                                        IP_EVENT_STA_GOT_IP,
-                                                        &event_handler,
-                                                        NULL,
-                                                        &instance_got_ip));
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+        ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                            ESP_EVENT_ANY_ID,
+                                                            &event_handler,
+                                                            NULL,
+                                                            NULL));
+        ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                            IP_EVENT_STA_GOT_IP,
+                                                            &event_handler,
+                                                            NULL,
+                                                            NULL));
+        
+        s_wifi_initialized = true;
+    }
 
     wifi_config_t wifi_config = {
         .sta = {
@@ -92,6 +103,11 @@ esp_err_t wifi_sta_init(const wifi_sta_user_config_t *config)
         },
     };
     
+    if (s_config.ssid == NULL || s_config.password == NULL) {
+        ESP_LOGE(TAG, "SSID or Password cannot be NULL");
+        return ESP_ERR_INVALID_ARG;
+    }
+
     strncpy((char *)wifi_config.sta.ssid, s_config.ssid, sizeof(wifi_config.sta.ssid) - 1);
     strncpy((char *)wifi_config.sta.password, s_config.password, sizeof(wifi_config.sta.password) - 1);
 
