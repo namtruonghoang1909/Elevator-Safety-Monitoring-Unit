@@ -66,6 +66,14 @@ esp_err_t mqtt_manager_init(const mqtt_manager_config_t *config)
         return ESP_ERR_INVALID_ARG;
     }
 
+    if (s_client != NULL) {
+        ESP_LOGI(TAG, "Re-initializing MQTT client, destroying old handle...");
+        esp_mqtt_client_stop(s_client);
+        esp_mqtt_client_destroy(s_client);
+        s_client = NULL;
+        s_is_connected = false;
+    }
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = config->broker_uri,
         .broker.address.port = config->port,
