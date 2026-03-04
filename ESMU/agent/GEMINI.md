@@ -105,6 +105,7 @@ C:\Users\HOANGNAM\.platformio\penv\Scripts\platformio.exe device monitor --port 
     - [design] → High-level architecture or system design. Stores the answer to agent/plan/idea.md, continue writing to the file, do not overwrite.
     - [code] -> Agent about to implement a new function, feature.
     - [refactor] → Improve code structure and modularity. Show the new code to the chat section, waits for the approval of the user.
+    - [comment] → Add or fix comments based on the context that user provides after the command.
     - [debug] → Analyze logs/errors and find root cause.
     - [fix] → This command usually run after the [debug] command, once the errors have been found, agent attempts to create todolist on the agent/plan/FIX_BUG_PLAN.md,
     once the todolist was approved by the user, agent executes the todolist. continue writing to the file, do not overwrite.

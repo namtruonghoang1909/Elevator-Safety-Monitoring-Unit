@@ -11,7 +11,7 @@ This file tracks the overall project progress and the specific, approved steps f
 - [x] **I2C Platform**: Multi-bus, thread-safe abstraction.
 - [x] **MPU6050 Driver**: Basic movement/gyro sensing (Verified in main).
 - [x] **SSD1306 Driver**: OLED display primitives (Verified in main).
-- [ ] **Unity Driver Tests**: Formalize driver verification in the `test/` folder.
+- [x] **Unity Driver Tests**: Formalize driver verification in the `test/` folder (MPU6050 Complete).
 
 ### 2. Connectivity Layer
 - [x] **Wifi Station**: Stable connection with auto-reconnect.
@@ -32,10 +32,7 @@ This file tracks the overall project progress and the specific, approved steps f
 ## II. ACTIVE TASK EXECUTION
 *Detailed sub-tasks for the current directive. **DO NOT START until approved by user.***
 
-### Current Task: Clean up and Commit Connectivity Stack
-- [ ] Revert `src/main.c` to a minimal NVS-only state.
-- [ ] Stage and commit all changes (drivers, connectivity, tests, docs).
-- [ ] Push the `feature/connectivity` branch to the remote.
+(No active tasks)
 
 ---
 **Note**: To approve a task, reply in the chat with "Approved" or provide feedback on specific sub-tasks.
