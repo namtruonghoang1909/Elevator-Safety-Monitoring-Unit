@@ -1,66 +1,47 @@
 # ESMU Project Memory Log
 
-## 2026-03-01 - Initial Drivers and Platform Implementation
-- **i2c_platform**: Implemented project-level I2C abstraction. Supports multi-bus management and thread-safe device registration.
-- **mpu6050**: Implemented driver for the 6-axis accelerometer/gyroscope.
-- **ssd1306**: Implemented low-level OLED driver for 128x64 displays.
+## Summary of Project Progress (March 2026)
 
-## 2026-03-03 - Build Fixes and Connectivity Stack Refactoring
+This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU), focusing on hardware drivers, connectivity, and build system integrity.
 
-### 1. Build System Resolution
-- **Status**: SUCCESS.
-- **Changes**:
-    - Fixed `wifi_sta` dependencies by adding `esp_event` and `esp_netif` to `CMakeLists.txt`.
-    - Fixed `mqtt_manager` dependencies by adding `esp_event` and `esp_common` to `CMakeLists.txt`.
-    - Simplified root `CMakeLists.txt` for better component discovery.
-    - Added `nvs_flash` dependency to the system component.
+### 1. Core Drivers and Platform (I2C)
+- **i2c_platform**: Implemented a modern, thread-safe I2C master abstraction using ESP-IDF's new `i2c_master.h` driver. Supports multi-bus management and dynamic device registration.
+- **mpu6050**: Developed a comprehensive 6-axis driver with raw/scaled data reading, temperature conversion, and magnitude calculation.
+- **ssd1306**: Implemented OLED display primitives.
 
-### 2. Connectivity Manager and Telemetry Integration
-- **Status**: IMPLEMENTED & REFACTORED.
-- **Changes**:
-    - Refactored `src/main.c` to use `connectivity_manager` for centralized network control.
-    - Implemented a `telemetry_task` that publishes JSON payloads (Uptime, Status, RSSI) to the broker every 10 seconds.
-    - Verified logic for 5-second WiFi stability before starting MQTT.
+### 2. Connectivity Stack & Manager
+- **Components**: Developed `wifi_sta` (WiFi station) and `mqtt_manager` (MQTT wrapper) with auto-reconnect logic and state management.
+- **Connectivity Manager**: An orchestrator that manages WiFi and MQTT lifecycles together.
+- **Refactoring**: Moved telemetry logic into the manager and verified it with JSON payloads.
+- **Verification**: Fully tested via `test/test_connectivity/test_connectivity.c`.
 
-### 3. System Controller Bug Fixes
-- **Status**: PARTIAL (DEFERRED).
-- **Changes**:
-    - Added `system_controller_init()` to initialize the event queue.
-    - Added safety checks to prevent `xQueueSend` on a NULL queue.
-    - Deferred full implementation per user request to focus on the connectivity stack and drivers.
+### 3. MPU6050 Interactive Verification Suite (Task 06)
+- **Unity Test Suite**: Created `test/test_mpu6050/test_mpu6050.c` for hardware-in-the-loop (HIL) testing.
+- **Interactive Logic**: 
+    - Used **GPIO 15** for LED signaling (Blink = WAIT, OFF = SAMPLING).
+    - Verified **Scaling & FSR**: Tested Z-axis readings at 2G and 16G ranges.
+    - Verified **Physical Vectors**: Verified gravity magnitude (1.0g +/- 0.1g) and Z-axis polarity (Flat vs. Upside-down).
+    - Verified **Robustness**: Proved the driver's auto-recovery logic can detect and repair register corruption in `GYRO_CONFIG`.
+- **Documentation**: Added `test/test_mpu6050/README.md` with detailed interaction protocols.
 
-### 4. Unit Testing Framework & Bug Fixes (Task 05)
-- **Status**: VERIFIED & FIXED.
-- **Changes**:
-    - Created `test/test_connectivity/test_connectivity.c` for automated testing.
-    - **Bug Fix**: Corrected `connectivity_manager` state to `WIFI_ONLY` during stability wait.
-    - **Bug Fix**: RSSI now reports -127 (no signal) when disconnected instead of 0.
-    - **Bug Fix**: `connectivity_manager_stop` now correctly shuts down WiFi.
-    - **Safety**: Added NULL pointer checks for WiFi credentials in `wifi_sta`.
-    - Verified build and test structure using PlatformIO CLI in separate terminal windows.
+### 4. Build System & Dependency Fixes
+- **Issue**: `system.c` was failing to include `nvs_flash.h` during component-only test builds.
+- **Fix**: Updated `components/system/CMakeLists.txt` to include `nvs_flash`, `esp_common`, `log`, `freertos`, and `esp_system` in the `REQUIRES` list.
+- **Status**: Verified that the entire project compiles successfully in both the standard build and the Unity test environment.
 
 ---
 
-## Project Structural State (Current)
+## Current Project State
 - **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306.
-- **Connectivity Layer**: [COMPLETE & REFACTORED] wifi_sta, mqtt_manager, connectivity_manager.
+- **Connectivity Layer**: [COMPLETE] wifi_sta, mqtt_manager, connectivity_manager.
 - **Service Layer**: 
     - Display Service: [PENDING]
+    - Motion Monitor: [PENDING]
     - Fault Detector: [PENDING]
 - **System Layer**:
     - System Controller: [PARTIAL/DEFERRED]
 
-## 2026-03-03 - Final Connectivity Verification & Documentation
-- **Status**: SUCCESS (All tests PASSED).
-- **Changes**:
-    - Re-implemented `test/test_connectivity/test_connectivity.c` to restore missing tests.
-    - **Fix**: Made `wifi_sta_init` and `mqtt_manager_init` idempotent and safe for multiple calls.
-    - **Test Improvement**: Added `tearDown` cleanup and adjusted RSSI assertions.
-    - **Documentation**: Updated all READMEs to use standard `pio` commands for the PlatformIO Core CLI instead of absolute paths.
-    - **File Management**: Renamed `test/instructions.md` back to `test/README.md` for consistency.
-    - **Project Setup**: Created a root `README.md` with project overview and build/test instructions.
-
-## Build Statistics (Latest)
-- **Flash Usage**: 84.6% (887,521 bytes)
-- **RAM Usage**: 10.5% (34,332 bytes)
-- **Build Tool**: PlatformIO (Espressif32 6.12.0)
+## Next Session Focus
+- Implement the `motion_monitor` service for high-pass filtering and gyro-zeroing.
+- Implement the `display_service` for real-time visual output on the SSD1306.
+- Finalize the `system_controller` FSM.
