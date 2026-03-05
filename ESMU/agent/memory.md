@@ -29,6 +29,18 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
 - **Fix**: Updated `components/system/CMakeLists.txt` to include `nvs_flash`, `esp_common`, `log`, `freertos`, and `esp_system` in the `REQUIRES` list.
 - **Status**: Verified that the entire project compiles successfully in both the standard build and the Unity test environment.
 
+### 5. SSD1306 Interactive Verification Suite (March 2026)
+- **Unity Test Suite**: Created `test/test_ssd1306/test_ssd1306.c` for hardware-in-the-loop (HIL) testing.
+- **Automated Verification**:
+    - Verified **Initialization**: Successful I2C bus and device registration.
+    - Verified **Control Commands**: Confirmed contrast adjustment, display inversion, and ON/OFF switching.
+    - Verified **Robustness**: Proved the driver's bounds-handling logic prevents crashes when attempting to draw outside the 128x64 display area.
+- **Visual Verification**:
+    - **Checkerboard Pattern**: Confirmed no dead pixels and correct page mapping.
+    - **Fill/Clear**: Verified full-screen white (0xFF) and black (0x00) states.
+    - **Horizontal Scrolling**: Verified hardware scrolling (Right) and stop functionality.
+- **Integration**: Updated `agent/roadmap.md` and `agent/todo.md` to reflect the completed verification.
+
 ---
 
 ## Current Project State
