@@ -28,9 +28,3 @@ These tests require visual confirmation. The **Status LED (GPIO 15)** will blink
 ### 3. Checkerboard Pattern (`test_ssd1306_visual_checkerboard`)
 - **What you will see**: A fine grid of alternating black and white pixels across the entire 128x64 area.
 - **Verification**: Ensure there are no "dead" (always black) or "stuck" (always white) pixels. The pattern should be perfectly uniform.
-
-## Execution
-Run the following command to execute the tests:
-```bash
-C:\Users\HOANGNAM\.platformio\penv\Scripts\platformio.exe test -e esp32doit-devkit-v1 -f test_ssd1306
-```
