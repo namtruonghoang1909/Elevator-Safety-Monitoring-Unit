@@ -41,14 +41,27 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - **Horizontal Scrolling**: Verified hardware scrolling (Right) and stop functionality.
 - **Integration**: Updated `agent/roadmap.md` and `agent/todo.md` to reflect the completed verification.
 
+### 6. Motion Monitor Service Implementation (Task 06)
+- **Component**: Created `components/services/motion_monitor`.
+- **Filtering**: Implemented **EMA (Exponential Moving Average)** for 6-axis data to eliminate high-frequency motor noise.
+- **Physics Engine**:
+    - **Linear Z**: Isolation of vertical force by subtracting a calibrated 1.0g gravity baseline.
+    - **Shake Magnitude**: Euclidean norm of the horizontal (XY) plane for vibration detection.
+- **State Machine**:
+    - Implemented a **debounced logical state engine** with 500ms transition windows.
+    - Detects: `STATIONARY`, `MOVING_UP`, `MOVING_DOWN`, and `ACCELERATING`.
+- **Full-Scale Adjust**: Configured to **±8g** to ensure headroom for emergency stop impact detection.
+- **Build Fix**: Replaced `esp_timer_get_time()` with FreeRTOS `xTaskGetTickCount()` to resolve environment-specific `esp_timer.h` dependency issues.
+- **Verification**: Created `test/test_motion_monitor/test_motion_monitor.c`. Verified build success with `src/main.c`.
+
 ---
 
 ## Current Project State
 - **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306.
 - **Connectivity Layer**: [COMPLETE] wifi_sta, mqtt_manager, connectivity_manager.
 - **Service Layer**: 
+    - Motion Monitor: [COMPLETE]
     - Display Service: [PENDING]
-    - Motion Monitor: [PENDING]
     - Fault Detector: [PENDING]
 - **System Layer**:
     - System Controller: [PARTIAL/DEFERRED]
