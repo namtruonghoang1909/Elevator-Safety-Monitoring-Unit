@@ -1,8 +1,13 @@
-idf_component_register(
-    SRCS "motion_monitor.c" 
-         "filter/motion_filter.c" 
-         "fsm/motion_fsm.c"
-    INCLUDE_DIRS "include"
-    PRIV_INCLUDE_DIRS "filter" "fsm"
-    REQUIRES mpu6050 freertos log esp_common esp_system
+set(srcs
+    "motion_monitor.c"
+    "src/core/motion_task.c"
+    "src/core/motion_processor.c"
+    "src/filter/motion_filter.c"
+    "src/fsm/motion_fsm.c"
+    "src/balance/motion_balance.c"
 )
+
+idf_component_register(SRCS ${srcs}
+                    INCLUDE_DIRS "include" "src"
+                    PRIV_INCLUDE_DIRS "src"
+                    REQUIRES mpu6050 freertos)

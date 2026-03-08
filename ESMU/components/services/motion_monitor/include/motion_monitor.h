@@ -21,15 +21,27 @@ typedef enum {
 } motion_state_t;
 
 /**
+ * @brief Elevator balance (tilt) states
+ */
+typedef enum {
+    BALANCE_STATE_LEVEL = 0,         /**< Elevator is level within threshold */
+    BALANCE_STATE_TILT_LEFT,         /**< Tilted towards negative X */
+    BALANCE_STATE_TILT_RIGHT,        /**< Tilted towards positive X */
+    BALANCE_STATE_TILT_FORWARD,      /**< Tilted towards positive Y */
+    BALANCE_STATE_TILT_BACKWARD      /**< Tilted towards negative Y */
+} balance_state_t;
+
+/**
  * @brief Processed motion metrics (filtered and compensated)
  */
 typedef struct {
-    float lin_accel_z;    /**< Linear vertical acceleration (g) - Gravity removed */
-    float shake_mag;      /**< Horizontal vibration magnitude (g) - sqrt(X^2 + Y^2) */
-    float gyro_roll_dps;  /**< Filtered angular velocity around X (°/s) */
-    float gyro_pitch_dps; /**< Filtered angular velocity around Y (°/s) */
-    motion_state_t state; /**< Current logical elevator state */
-    uint32_t last_update; /**< Timestamp of last calculation (ms) */
+    float lin_accel_z;      /**< Linear vertical acceleration (g) - Gravity removed */
+    float shake_mag;        /**< Horizontal vibration magnitude (g) - sqrt(X^2 + Y^2) */
+    float gyro_roll_dps;    /**< Filtered angular velocity around X (°/s) */
+    float gyro_pitch_dps;   /**< Filtered angular velocity around Y (°/s) */
+    motion_state_t state;   /**< Current logical elevator movement state */
+    balance_state_t balance;/**< Current logical elevator balance state */
+    uint32_t last_update;   /**< Timestamp of last calculation (ms) */
 } motion_metrics_t;
 
 /**
@@ -59,11 +71,18 @@ esp_err_t motion_monitor_init(const motion_monitor_config_t *cfg);
 esp_err_t motion_monitor_get_metrics(motion_metrics_t *out);
 
 /**
- * @brief Get the current logical elevator state
+ * @brief Get the current logical elevator motion state
  * 
  * @return motion_state_t 
  */
-motion_state_t motion_monitor_get_state(void);
+motion_state_t motion_monitor_get_motion(void);
+
+/**
+ * @brief Get the current logical elevator balance state
+ * 
+ * @return balance_state_t 
+ */
+balance_state_t motion_monitor_get_equilibrium(void);
 
 /**
  * @brief Perform a 2-second calibration sequence to "zero" the gravity vector
