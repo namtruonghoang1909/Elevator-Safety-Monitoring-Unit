@@ -53,6 +53,10 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
 - **Full-Scale Adjust**: Configured to **±8g** to ensure headroom for emergency stop impact detection.
 - **Build Fix**: Replaced `esp_timer_get_time()` with FreeRTOS `xTaskGetTickCount()` to resolve environment-specific `esp_timer.h` dependency issues.
 - **Verification**: Created `test/test_motion_monitor/test_motion_monitor.c`. Verified build success with `src/main.c`.
+- **Refactoring (March 2026)**:
+    - Renamed `motion_monitor_get_state` to `motion_monitor_get_motion` for better semantic clarity.
+    - Added `motion_monitor_get_equilibrium` to provide direct access to the `balance_state_t` (tilt) metrics.
+    - Updated `test/test_motion_monitor/test_motion_monitor.c` with comprehensive verification of the new API.
 
 ---
 
