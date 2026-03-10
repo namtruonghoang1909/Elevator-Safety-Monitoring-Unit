@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"name": "ESMU-Gateway (ESP32)",
+			"path": "gateway-esp32"
+		},
+		{
+			"name": "ESMU-Edge (STM32)",
+			"path": "edge-stm32"
+		},
+		{
+			"name": "ESMU-Agent (Docs)",
+			"path": "agent"
+		},
+		{
+			"name": "ESMU-Root",
+			"path": "."
+		}
+	],
+	"settings": {
+		"C_Cpp.intelliSenseEngine": "Disabled",
+		"stm32-cube-clangd.active": true,
+		"files.exclude": {
+			"**/.pio": true,
+			"**/Debug": true,
+			"**/Release": true
+		}
+	}
+}

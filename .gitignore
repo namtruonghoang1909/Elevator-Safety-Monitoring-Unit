@@ -1,0 +1,32 @@
+# --- General / OS ---
+.DS_Store
+Thumbs.db
+*.log
+*.bak
+*.swp
+desktop.ini
+
+# --- VS Code ---
+.vscode/*.json
+!.vscode/settings.json
+!.vscode/extensions.json
+*.code-search
+.history/
+
+# --- ESP32 / PlatformIO (gateway-esp32) ---
+gateway-esp32/.pio/
+gateway-esp32/.vscode/
+gateway-esp32/sdkconfig
+gateway-esp32/sdkconfig.old
+gateway-esp32/build/
+
+# --- STM32 / CubeIDE (edge-stm32) ---
+edge-stm32/Debug/
+edge-stm32/Release/
+edge-stm32/.settings/
+edge-stm32/*.launch
+edge-stm32/.launches/
+
+# --- Agent / Gemini ---
+.gemini/tmp/
+agent/.gemini/
