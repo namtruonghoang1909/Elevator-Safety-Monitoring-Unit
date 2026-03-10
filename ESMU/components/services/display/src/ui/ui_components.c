@@ -40,8 +40,14 @@ void ui_draw_header(uint8_t *fb, int8_t wifi_level, bool mqtt_ok) {
         default: wifi_icon = WIFI_ICON_DISCONNECTED; break;
     }
     display_draw_bitmap(fb, 0, 0, 8, 8, wifi_icon);
-    // Move MQTT icon next to WiFi icon (8 pixels + 4 pixels gap = 12)
-    display_draw_bitmap(fb, 12, 0, 8, 8, mqtt_ok ? MQTT_ICON_CONNECTED : MQTT_ICON_DISCONNECTED);
+
+    // MQTT Cloud Icon (Static fill based on connection)
+    const uint8_t *mqtt_icon = mqtt_ok ? ICON_CLOUD_ACTIVE : ICON_CLOUD_DISCONNECTED;
+    display_draw_bitmap(fb, 12, 0, 8, 8, mqtt_icon);
+
+    // Center "ESMU" in the header (128/2 - (4*6)/2 = 64 - 12 = 52)
+    display_draw_string(fb, 52, 0, "ESMU");
+
     display_draw_hline(fb, 0, 127, 9);
 }
 
@@ -51,12 +57,8 @@ void ui_draw_footer(uint8_t *fb, uint32_t uptime_sec) {
     int d = uptime_sec / 86400;
     int h = (uptime_sec % 86400) / 3600;
     int m = (uptime_sec % 3600) / 60;
-    // Shorten uptime to avoid overlap with "ESMU" in the middle
-    snprintf(buf, sizeof(buf), "U:%02dd%02dh%02dm", d, h, m);
+    snprintf(buf, sizeof(buf), "UP:%02dd %02dh %02dm", d, h, m);
     display_draw_string(fb, 0, 56, buf);
-
-    // Center "ESMU" (128/2 - (4*6)/2 = 64 - 12 = 52)
-    display_draw_string(fb, 52, 56, "ESMU");
 
     if ((uptime_sec % 2) == 0) display_draw_bitmap(fb, 118, 55, 8, 8, ICON_HEART_V2);
 }

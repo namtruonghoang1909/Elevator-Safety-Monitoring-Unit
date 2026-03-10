@@ -133,7 +133,6 @@ esp_err_t connectivity_manager_start(void)
     ESP_LOGI(TAG, "Connectivity Manager started.");
     return ESP_OK;
 }
-
 esp_err_t connectivity_manager_stop(void)
 {
     s_running = false;

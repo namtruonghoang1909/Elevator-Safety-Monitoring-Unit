@@ -1,5 +1,5 @@
 set(srcs
-    "service.c"
+    "motion_monitor.c"
     "src/core/task.c"
     "src/core/processor.c"
     "src/filter/filter.c"

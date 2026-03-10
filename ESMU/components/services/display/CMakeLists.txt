@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS 
-        "service.c"
+        "display_service.c"
         "src/core/primitives.c"
         "src/ui/ui_components.c"
     INCLUDE_DIRS "include" "."

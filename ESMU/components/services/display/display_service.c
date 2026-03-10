@@ -1,5 +1,5 @@
 /**
- * @file service.c
+ * @file display_service.c
  * @brief Layer 3: Display Service Manager Implementation
  */
 

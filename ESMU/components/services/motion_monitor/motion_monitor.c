@@ -1,5 +1,5 @@
 /**
- * @file service.c
+ * @file motion_monitor.c
  * @brief Motion Monitor service for elevator movement and vibration analysis
  */
 
