@@ -1,45 +1,48 @@
-# Motion Monitor Re-implementation Idea
+# ESMU System Component Redesign
 
-## Objective
-Re-implement the `motion_monitor` service to improve modularity, testability, and add elevator balance (tilt) detection.
+## 1. Do we need a System Component?
+**YES.** Even though Display, Motion, and Connectivity are independent tasks, we need a "Central Brain" (Supervisor) for:
+- **Global Error Handling**: If the MPU6050 task hangs, only a supervisor can decide to enter "Safe Mode."
+- **Phase Transitions**: Orchestrating the move from Booting -> Config -> Monitoring.
+- **Unified Event Bus**: Allowing services to communicate without being directly "wired" to each other.
 
-## 1. Architectural Changes: Decoupling Logic from Service
-Currently, `motion_monitor.c` handles both the FreeRTOS task and the processing logic. We will decouple these:
-- **Service Layer (`motion_monitor.c`):** Handles initialization, task creation, mutex locking, and public API calls.
-- **Task Layer (`motion_task.c`):** Implements the FreeRTOS task loop that polls the sensor and calls the processor.
-- **Processor Layer (`motion_processor.c`):** A pure logic orchestrator that takes raw sensor data and updates metrics. This layer is independent of FreeRTOS.
+## 2. Redesigned Architecture (The Supervisor Pattern)
 
-## 2. New Feature: Balance (Tilt) Monitoring
-Add a module to detect if the elevator is tilting.
-- **`motion_balance.c`:** Calculates tilt angles based on filtered X and Y accelerometer data.
-- **`balance_state_t`:**
-    ```c
-    typedef enum {
-        BALANCE_LEVEL = 0,
-        BALANCE_TILT_LEFT,
-        BALANCE_TILT_RIGHT,
-        BALANCE_TILT_FORWARD,
-        BALANCE_TILT_BACKWARD
-    } balance_state_t;
-    ```
-- **Logic:** Compare Accel X/Y values against a threshold (e.g., ±0.1g for roughly ±6 degrees).
+### A. The Two-Stage Init (Solving the Race Condition)
+Instead of a single `system_init`, use:
+1. `controller_pre_init()`: Creates the `system_event_queue`. Guaranteed to run before any event is sent.
+2. `system_start()`: Sends the `BOOT` event and then spawns the `system_task` to begin processing.
 
-## 3. Proposed File Structure
+### B. Functional States
+- `IDLE`: Power applied, no hardware touched yet.
+- `INITIALIZING`: Hardware discovery and self-test.
+- `CONFIGURING`: No WiFi credentials or user triggered manual setup.
+- `CALIBRATING`: MPU6050 zero-point calculation (requires device to be flat).
+- `MONITORING`: Normal production loop.
+- `FAIL_SAFE`: Sensor lost or critical error. Display shows "SYSTEM HALTED."
+
+### C. Folder Structure
 ```text
-components/services/motion_monitor/
+components/system/
 ├── include/
-│   └── motion_monitor.h      (Public API & Unified Data Structs)
+│   ├── system.h           (Public Orchestrator API)
+│   ├── system_registry.h  (The Whiteboard)
+│   ├── system_event.h     (Events: BOOT, WIFI_READY, FAULT, etc.)
+│   └── system_error.h     (Error codes)
 ├── src/
-│   ├── motion_monitor.c      (Init & API Implementation)
-│   ├── motion_task.c         (FreeRTOS Task & Sync)
-│   ├── motion_processor.c    (Logic Orchestrator)
-│   ├── motion_filter.c       (Signal Smoothing)
-│   ├── motion_fsm.c          (Elevator Motion State)
-│   └── motion_balance.c      (New Tilt Detection)
-└── CMakeLists.txt            (Updated for new files)
+│   ├── system.c           (The Orchestrator / Entry Logic)
+│   ├── system_registry.c  (State storage)
+│   └── controller/
+│       ├── system_controller.c (The FSM Task)
+│       └── system_supervisor.c (Watchdog for other service heartbeats)
 ```
 
-## 4. Key Benefits
-- **Testability:** `motion_processor.c` can be tested in a host-based environment or via Unity tests without needing FreeRTOS.
-- **Maintainability:** Each module (FSM, Filter, Balance) is isolated and easy to update.
-- **Extensibility:** New metrics or logic (e.g., vibration FFT) can be added to the processor without changing the task or API structure.
+## 3. The "Service Heartbeat" Implementation
+Each service (Display, Motion, Connectivity) will report a "Heartbeat" to the `system_supervisor` every 1 second. 
+- If the supervisor detects a service has "gone dark," it forces the system into `FAIL_SAFE` mode. 
+- This is critical for an elevator where a frozen "IDLE" display could hide a real emergency.
+
+## 4. Implementation Steps
+1. Refactor `system_controller` to support `pre_init`.
+2. Move credentials check into a dedicated "Provisioning" check in the `INITIALIZING` phase.
+3. Implement the `FAIL_SAFE` transition in the FSM.

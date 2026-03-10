@@ -58,6 +58,27 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - Added `motion_monitor_get_equilibrium` to provide direct access to the `balance_state_t` (tilt) metrics.
     - Updated `test/test_motion_monitor/test_motion_monitor.c` with comprehensive verification of the new API.
 
+### 7. Display Service & UI Enhancement (March 2026)
+- **Component**: `components/services/display`.
+- **UI Architecture**: Implemented a layered UI system with `display_primitives` (Layer 1), `display_ui_components` (Layer 2), and `display_service` (Layer 3).
+- **Monitoring View**: 
+    - Created an interactive **Elevator Visualization** that tilts based on the physical balance of the unit (LEFT/RIGHT).
+    - Integrated motion arrows (UP/DOWN/IDLE) and health/balance text telemetry.
+- **System Feedback**: Added a Status Bar with WiFi signal bars and MQTT connection status icons.
+- **Fault Display**: Implemented an inverse-video "EMERGENCY" overlay for critical system states.
+
+### 8. Debugging Standards & Error Handling (March 2026)
+- **Compliance**: Updated all major service components to follow the "ESMU Debugging Rules".
+- **Logging**: Replaced silent `ESP_ERROR_CHECK` macros with explicit `esp_err_t` checks and `ESP_LOGE` for better field diagnostics.
+- **Robustness**: Implemented rate-limited error logging (every 100 frames) in high-frequency display tasks to prevent log flooding while maintaining visibility of persistent I2C failures.
+- **Files Updated**: `system_controller.c`, `wifi_sta.c`, `display_service.c`, `connectivity_manager.c`, `mqtt_manager.c`.
+
+### 9. Code Cleanup & Documentation Update (March 2026)
+- **Refactoring**: Renamed internal files in `display` and `motion_monitor` components to remove redundant prefixes (`display_`, `motion_`). This improved code readability and clarified internal vs. public API boundaries.
+- **CMake Alignment**: Updated `CMakeLists.txt` for both components to reflect the new file structure.
+- **Comprehensive Docs**: Updated all existing READMEs and created missing documentation for `mpu6050`, `ssd1306`, `i2c_platform`, and `connectivity` stack. Added `agent/README.md` to explain agent metadata.
+- **UI Refinement**: Moved MQTT icon to the header's left side (next to WiFi) and centered "ESMU" in the footer.
+
 ---
 
 ## Current Project State
@@ -65,12 +86,12 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
 - **Connectivity Layer**: [COMPLETE] wifi_sta, mqtt_manager, connectivity_manager.
 - **Service Layer**: 
     - Motion Monitor: [COMPLETE]
-    - Display Service: [PENDING]
+    - Display Service: [COMPLETE]
     - Fault Detector: [PENDING]
 - **System Layer**:
-    - System Controller: [PARTIAL/DEFERRED]
+    - System Controller: [PARTIAL]
 
 ## Next Session Focus
-- Implement the `motion_monitor` service for high-pass filtering and gyro-zeroing.
-- Implement the `display_service` for real-time visual output on the SSD1306.
-- Finalize the `system_controller` FSM.
+- Implement the **Fault Detector** service to analyze motion metrics for anomalies (shakes, freefall).
+- Finalize the `system_controller` FSM transitions for error recovery.
+- Add hardware-in-the-loop tests for the `display_service`.
