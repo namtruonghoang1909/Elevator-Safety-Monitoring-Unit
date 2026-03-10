@@ -1,9 +1,19 @@
-set(srcs "system.c"
+idf_component_register(
+    SRCS 
+        "system.c"
+        "system_registry.c"
         "controller/system_controller.c"
+    INCLUDE_DIRS "include"
+    REQUIRES 
+        nvs_flash 
+        esp_common 
+        log 
+        freertos 
+        esp_system
+    PRIV_REQUIRES 
+        i2c_platform
+        display
+        connectivity_manager
+        motion_monitor
+        mpu6050
 )
-
-set (include_dirs "include")
-
-idf_component_register(SRCS ${srcs}
-                       INCLUDE_DIRS ${include_dirs}
-                       REQUIRES nvs_flash esp_common log freertos esp_system)

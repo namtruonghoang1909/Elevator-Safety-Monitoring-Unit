@@ -1,25 +1,31 @@
+/**
+ * @file system.h
+ * @brief Redesigned System Orchestrator API
+ */
+
 #pragma once
 
+#include "esp_err.h"
+
 /**
- * @brief System states
+ * @brief System-wide functional states
  */
 typedef enum system_state_id_t {
-    SYSTEM_STATE_IDLE,
-
-    SYSTEM_STATE_INITIALIZING,
-
-    SYSTEM_STATE_CONFIGURING, // intend to be configurated through a web server
-
-    SYSTEM_STATE_MONITORING,
-    
-    SYSTEM_STATE_ERROR
+    SYSTEM_STATE_IDLE,          /**< Power on, awaiting init */
+    SYSTEM_STATE_INITIALIZING,  /**< Hardware discovery and self-test */
+    SYSTEM_STATE_CONFIGURING,   /**< Web portal active for credentials */
+    SYSTEM_STATE_MONITORING,    /**< Normal production operation */
+    SYSTEM_STATE_ERROR          /**< Critical failure / Fail-Safe mode */
 } system_state_id_t;
 
 /**
- * @brief 
- * - Initialize the system module
- *      - NVS
- *      - event loop
- *      - xqueue storing system events
+ * @brief Stage 1: Memory & Queue Initialization
+ * Must be called before any other system_report_event calls.
  */
-void system_start(void);
+esp_err_t system_core_init(void);
+
+/**
+ * @brief Stage 2: Orchestration Start
+ * Spawns the system task and triggers the BOOT sequence.
+ */
+esp_err_t system_start(void);
