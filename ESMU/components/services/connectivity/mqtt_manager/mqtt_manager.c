@@ -68,8 +68,14 @@ esp_err_t mqtt_manager_init(const mqtt_manager_config_t *config)
 
     if (s_client != NULL) {
         ESP_LOGI(TAG, "Re-initializing MQTT client, destroying old handle...");
-        esp_mqtt_client_stop(s_client);
-        esp_mqtt_client_destroy(s_client);
+        esp_err_t err = esp_mqtt_client_stop(s_client);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_mqtt_client_stop failed: %s", esp_err_to_name(err));
+        }
+        err = esp_mqtt_client_destroy(s_client);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_mqtt_client_destroy failed: %s", esp_err_to_name(err));
+        }
         s_client = NULL;
         s_is_connected = false;
     }
@@ -106,14 +112,22 @@ esp_err_t mqtt_manager_start(void)
 {
     if (s_client == NULL) return ESP_ERR_INVALID_STATE;
     ESP_LOGI(TAG, "Starting MQTT client...");
-    return esp_mqtt_client_start(s_client);
+    esp_err_t err = esp_mqtt_client_start(s_client);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_mqtt_client_start failed: %s", esp_err_to_name(err));
+    }
+    return err;
 }
 
 esp_err_t mqtt_manager_stop(void)
 {
     if (s_client == NULL) return ESP_ERR_INVALID_STATE;
     ESP_LOGI(TAG, "Stopping MQTT client...");
-    return esp_mqtt_client_stop(s_client);
+    esp_err_t err = esp_mqtt_client_stop(s_client);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_mqtt_client_stop failed: %s", esp_err_to_name(err));
+    }
+    return err;
 }
 
 esp_err_t mqtt_manager_publish(const char *topic, const char *data, int qos, bool retain)
@@ -152,11 +166,18 @@ esp_err_t mqtt_manager_subscribe(const char *topic, int qos)
 
 esp_err_t mqtt_manager_unsubscribe(const char *topic)
 {
-    if (s_client == NULL || !s_is_connected) return ESP_ERR_INVALID_STATE;
+    if (s_client == NULL || !s_is_connected) {
+        ESP_LOGW(TAG, "Cannot unsubscribe: Client not connected");
+        return ESP_ERR_INVALID_STATE;
+    }
     
     int msg_id = esp_mqtt_client_unsubscribe(s_client, topic);
-    if (msg_id < 0) return ESP_FAIL;
+    if (msg_id < 0) {
+        ESP_LOGE(TAG, "Failed to unsubscribe (msg_id=%d)", msg_id);
+        return ESP_FAIL;
+    }
     
+    ESP_LOGI(TAG, "Sent unsubscribe successful, msg_id=%d", msg_id);
     return ESP_OK;
 }
 
