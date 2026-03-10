@@ -1,5 +1,5 @@
 /**
- * @file motion_filter.h
+ * @file filter.h
  * @brief EMA filtering and magnitude calculations for MPU6050 data
  */
 

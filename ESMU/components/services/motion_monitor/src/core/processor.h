@@ -1,5 +1,5 @@
 /**
- * @file motion_processor.h
+ * @file processor.h
  * @brief Logic orchestrator for motion, balance, and filtering
  */
 

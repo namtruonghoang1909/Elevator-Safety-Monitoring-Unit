@@ -1,5 +1,5 @@
 /**
- * @file motion_fsm.h
+ * @file fsm.h
  * @brief Elevator state machine logic and transition rules
  */
 

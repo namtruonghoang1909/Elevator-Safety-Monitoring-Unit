@@ -1,8 +1,13 @@
+/**
+ * @file motion_monitor.c
+ * @brief Motion Monitor service for elevator movement and vibration analysis
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include "esp_log.h"
 #include "motion_monitor.h"
-#include "core/motion_task.h"
+#include "core/task.h"
 
 static const char *TAG = "MOTION_MONITOR";
 #define CALIBRATION_SAMPLES 200
@@ -10,7 +15,9 @@ static const char *TAG = "MOTION_MONITOR";
 static mm_task_ctx_t s_ctx;
 
 esp_err_t motion_monitor_init(const motion_monitor_config_t *cfg) {
-    esp_err_t err = mm_task_init(&s_ctx, cfg);
+    esp_err_t err;
+
+    err = mm_task_init(&s_ctx, cfg);
     if (err != ESP_OK) return err;
 
     err = mm_task_start(&s_ctx, cfg);

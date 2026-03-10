@@ -38,11 +38,11 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 *High-level logic and data processing services.*
 
 - **Motion Monitor**
-  - [ ] Implementation: High-pass filtering and gyro-zeroing.
-  - [ ] Verification: Signal integrity and drift tests.
+  - [x] Implementation: EMA filtering, gravity compensation, and FSM.
+  - [x] Verification: Signal integrity and drift tests via Unity. [COMPLETE]
 - **Display Service**
-  - [ ] Implementation: UI State management and icons.
-  - [ ] Verification: UI transition and layout tests.
+  - [x] Implementation: Layered UI, elevator visualization, and status icons.
+  - [x] Verification: Visual UI testing. [COMPLETE]
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.
   - [ ] Verification: Simulated fault detection tests.

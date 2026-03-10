@@ -1,37 +1,39 @@
-# SYSTEM HARDWARES COMPONENTS
-    - Signal leds
-        + led for gsm (red when no configuration, green for configuration provided)
-        + led for mqtt (red when no connection, green for connected to broker)
-        + led for elevator health  (green when elevator behaves normally, yellow for degreaded(vibrates slightly, small shakes, ....), red for critical faults)
+# System Layer
 
+The System Layer provides the "Brain" and "Whiteboard" of the ESMU, managing global state transitions, event dispatching, and centralized telemetry storage.
 
+## Components
 
-# SYSTEM FLOW
+### 1. System Controller (`controller/system_controller.c`)
+The Controller is a supervisor task that manages the system's Finite State Machine (FSM). It responds to events (Boot, Fault, Config) and orchestrates transitions between high-level states.
 
-- the system boots up, then calls system_start();
-    - system start will post SYSTEM_EVENT_BOOT.
-- The system will call device_init()
-    - intializes:
-        - hardware: 
-            - pins(gpio, i2c, ...)
-            - sensors(imu, ...)
-        - software: 
-            - nvs 
-            - event loop
-    
-    - starts wifi connection and mqtt , sms in sequence (which calls wifi_init, wifi_init waits on configuration event bits)
-        - if connected to broker, green led for wifi on. Otherwise red.
+#### States:
+- `SYSTEM_STATE_INITIALIZING`: Booting hardware and services.
+- `SYSTEM_STATE_MONITORING`: Normal operation, analyzing elevator motion.
+- `SYSTEM_STATE_CONFIGURING`: Local web server active for provisioning.
+- `SYSTEM_STATE_ERROR`: Critical fault detected, emergency procedures active.
 
-- the system will go to monitoring, ready to receive fault events.
+### 2. System Registry (`system_registry.c`)
+The Registry is a thread-safe "Whiteboard" where all services post their status and metrics. The Display Service reads from this registry to render the UI.
 
-- when user access the webserver config, the system will receive SYSTEM_EVENT_START_CONFIGURATION
-    - throughout the system operation,
-        - if the sms infos arent provided, red led for gsm blinks.
-        - if the wifi infos arent provided, the system still operates normally.
-- after user save the config, system will receive SYSTEM_EVENT_CONFIGURATION_DONE, set the configuration event bits
+#### Telemetry Tracked:
+- WiFi Signal Level (0-4 bars).
+- MQTT Connection Status.
+- Motion State ("IDLE", "UP", "DOWN").
+- Balance State ("STABLE", "TILT LEFT", etc.).
+- Elevator Health ("GOOD", "SICK", "CRITICAL").
+- System Uptime.
 
+## Event System
 
+Services communicate with the Controller via `system_report_event()` and `system_report_error()`.
 
-- when system receives SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED, the system attempts to send call and sms, mqtt on emergency topic.
-    - sms only sends when phone infos is provided by the configuration
-    - mqtt only connected to broker
+| Event | Source | Impact |
+| :--- | :--- | :--- |
+| `SYSTEM_EVENT_BOOT` | `main.c` | Starts initialization. |
+| `SYSTEM_EVENT_INITIALIZED` | Controller | Transitions to Monitoring. |
+| `SYSTEM_EVENT_FAULT_DETECTED` | Fault Detector | Transitions to Error state. |
+
+## Configuration
+
+System-wide hardware pins and fixed thresholds are defined in `include/system_config.h`.

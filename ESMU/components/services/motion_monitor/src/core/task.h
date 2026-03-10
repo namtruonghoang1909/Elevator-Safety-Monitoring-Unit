@@ -1,12 +1,12 @@
 /**
- * @file motion_task.h
+ * @file task.h
  * @brief FreeRTOS task and synchronization for motion monitor
  */
 
 #pragma once
 
 #include "motion_monitor.h"
-#include "motion_processor.h"
+#include "processor.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"

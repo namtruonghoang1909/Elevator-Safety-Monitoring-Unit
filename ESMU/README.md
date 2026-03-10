@@ -1,55 +1,45 @@
 # Elevator Safety Monitoring Unit (ESMU)
 
-The ESMU is an ESP32-based system designed to monitor elevator safety by detecting abnormal motion, shakes, and emergency stops.
+The ESMU is an ESP32-based industrial monitoring system designed to enhance elevator safety. It provides real-time detection of abnormal motion, car tilt, and emergency stops, while providing field diagnostics via an OLED display and remote telemetry via MQTT.
 
-## Features
+## 🏗️ System Architecture
 
-- **Motion Monitoring**: 6-axis accelerometer/gyroscope (MPU6050).
-- **OLED Display**: Real-time status output (SSD1306).
-- **Connectivity**: WiFi and MQTT for telemetry and emergency alerts.
-- **Fail-Safe Design**: Centralized connectivity management and robust event handling.
+The project follows a layered service-oriented architecture:
 
-## Development Environment
+### 1. Services Layer
+- **[Motion Monitor](components/services/motion_monitor/README.md)**: EMA filtering, gravity compensation, and logical state tracking.
+- **[Display Service](components/services/display/README.md)**: Multi-layered UI management for real-time visualization.
+- **[Connectivity Stack](components/services/connectivity/README.md)**: Orchestrated WiFi and MQTT lifecycle management.
 
-- **Framework**: ESP-IDF
-- **Build System**: PlatformIO
-- **Board**: ESP32 DoIt DevKit V1
+### 2. System Layer
+- **[System Controller](components/system/README.md)**: Centralized FSM and event dispatching.
+- **System Registry**: Thread-safe "Whiteboard" for cross-service telemetry.
 
-## Getting Started
+### 3. Drivers & Platform
+- **[MPU6050](components/drivers/mpu6050/README.md)**: Robust 6-axis IMU driver with auto-recovery logic.
+- **[SSD1306](components/drivers/ssd1306/README.md)**: Optimized OLED display driver.
+- **[I2C Platform](components/platform/i2c_platform/README.md)**: Thread-safe multi-bus I2C abstraction.
+
+## 🚀 Getting Started
 
 ### Build and Flash
+1. **Install PlatformIO** (CLI or IDE extension).
+2. **Build**: `pio run`
+3. **Flash**: `pio run --target upload --upload-port COM4`
+4. **Monitor**: `pio device monitor --port COM4`
 
-Open the **PlatformIO Core CLI** in your IDE and run:
+### Running Hardware-in-the-Loop Tests
+Unit tests are written using the Unity framework and run directly on the ESP32:
+```bash
+# Run all tests
+pio test -e esp32doit-devkit-v1
 
-1.  **Build Project**:
-    ```bash
-    pio run
-    ```
-2.  **Flash Firmware**:
-    ```bash
-    pio run --target upload
-    ```
-3.  **Monitor Output**:
-    ```bash
-    pio device monitor
-    ```
+# Run a specific component test
+pio test -e esp32doit-devkit-v1 -f test_motion_monitor
+```
 
-### Running Tests
-
-To execute unit tests on the hardware:
-
-1.  **Run all tests**:
-    ```bash
-    pio test -e esp32doit-devkit-v1
-    ```
-2.  **Run a specific module (e.g., connectivity)**:
-    ```bash
-    pio test -e esp32doit-devkit-v1 -f test_connectivity
-    ```
-
-## Project Structure
-
-- `components/`: Modular drivers and services (I2C, MPU6050, SSD1306, Connectivity).
-- `src/`: Main application logic.
-- `test/`: Unit tests for each component.
-- `docs/`: Technical datasheets and pinout diagrams.
+## 🛠️ Project Standards
+- **Naming**: `snake_case_t` for types, `component_action` for functions.
+- **Error Handling**: Explicit `esp_err_t` checks with `ESP_LOGE` (No silent `ESP_ERROR_CHECK`).
+- **Documentation**: Doxygen-style comments in all public headers.
+- **Thread Safety**: Centralized registry and per-service mutexes for concurrency.

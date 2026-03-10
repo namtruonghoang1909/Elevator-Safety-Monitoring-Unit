@@ -1,5 +1,5 @@
 #include <math.h>
-#include "motion_filter.h"
+#include "filter.h"
 
 static inline float _ema(float input, float prev, float alpha) {
     return (alpha * input) + (1.0f - alpha) * prev;

@@ -1,6 +1,7 @@
 #include "system.h"
+#include "system_config.h"
 #include "system_event.h"
-#include "system_error.h"
+#include "system_registry.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -9,230 +10,249 @@
 #include "freertos/queue.h"
 #include "esp_log.h"
 
-#define FSM_WARN_UNEXPECTED(evt) \
-    ESP_LOGW(TAG, "Event %d ignored in state %d", evt, current_system_state)
+#include "display_service.h"
+#include "connectivity_manager.h"
+#include "motion_monitor.h"
+#include "i2c_platform.h"
+#include "mpu6050.h"
+#include "nvs_flash.h"
 
-/***********************************************************************
- * Internal variables
- *********************************************************************** 
- */
-static const char *TAG = "SYSTEM_CONTROLLER";
+static const char *TAG = "SYS_CTRL";
 
 static system_state_id_t current_system_state = SYSTEM_STATE_IDLE;
+static QueueHandle_t system_event_queue = NULL;
 
-static QueueHandle_t system_event_queue;
 
 /***********************************************************************
- * Internal function declarations
- ***********************************************************************
+ * STATIC FUNCTION DECLARATIONS
  */
-/**
- * @brief
- * system task to process system events
- * @param pvParameters Parameters for the task (not used)
- * @return void
- */
+static esp_err_t system_init();
 static void system_task(void *pvParameters);
-
-/**
- * @brief 
- * system intialization
- *  - create event handler task
- *  - initalize hardware
- */
-static void system_init();
-/**
- * @brief
- * Handle a new system event
- * @param new_event The new system event to handle
- * @return void
- */
 static void system_event_handler(system_event_t new_event);
-
-/**
- * @brief
- * Handle a system error
- * @param error_id The error ID to handle
- * @return void
- */
-static void system_error_handler(system_error_id_t error_id);
-
+static bool is_system_at_state(system_state_id_t state);
+static void state_transition(system_state_id_t new_state);
 
 /***********************************************************************
- * Internal helper functions declarations
- ***********************************************************************
+ * STATIC FUNCTION DEFINITIONS
  */
+static esp_err_t system_init()
+{
+    // 1. NVS init
+    esp_err_t ret = nvs_flash_init();   
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ret = nvs_flash_erase();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "NVS erase failed: %s", esp_err_to_name(ret));
+            return ret;
+        }
+        ret = nvs_flash_init();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "NVS re-init failed: %s", esp_err_to_name(ret));
+            return ret;
+        }
+    } else if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "NVS init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    // 2. Platform Init
+    uint8_t bus_id;
+    ret = i2c_bus_init(&bus_id, 21, 22);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "I2C bus init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    // 4. Manual Initialization Sequence (Since we are in INITIALIZING now)
+    ret = display_service_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Display service init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    system_registry_set_subtext("Booting ESMU...");
+    vTaskDelay(pdMS_TO_TICKS(1500));
+
+    // 5. Sensor Init
+    system_registry_set_subtext("Starting Sensors...");
+
+    // 7. Production Services
+    system_registry_set_subtext("Starting WiFi...");
+    connectivity_config_t conn_cfg = {
+        .wifi_config = { 
+            .ssid = WIFI_SSID, 
+            .password = WIFI_PASS, 
+            .auto_reconnect = true,
+        },
+        .mqtt_config = { 
+            .broker_uri = BROKER_URI, 
+            .client_id = CLIENT_ID,
+            .username = CLIENT_USERNAME,
+            .password = CLIENT_PASSWORD,
+            .port = 1883,
+            .disable_auto_reconnect = false,
+        },
+    };
+    ret = connectivity_manager_init(&conn_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Connectivity manager init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ret = connectivity_manager_start();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Connectivity manager start failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    // 8. Motion monitor init & Calibration Phase
+    mpu6050_config_t mpu_cfg = {
+        .address = 0x68,
+        .name = "MPU6050",
+        .scl_speed_hz = 400000,
+        .bus_id = 0,
+        .accel_full_scale = MPU6050_ACCEL_FS_8G,
+        .gyro_full_scale = MPU6050_GYRO_FS_500_DPS,
+        .use_gyro_pll = true,
+        .enable_digital_filter = true,
+    };
+    uint8_t mpu_id;
+    ret = mpu6050_init(&mpu_cfg, &mpu_id);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "MPU6050 init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    system_registry_set_subtext("Lay device flat!");
+    motion_monitor_config_t mm_cfg = {
+        .mpu_dev_id = mpu_id,
+        .filter_alpha = 0.2f,
+        .task_priority = 5,
+        .task_stack = 4096
+    };
+    ret = motion_monitor_init(&mm_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Motion monitor init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    
+    vTaskDelay(pdMS_TO_TICKS(1500));
+    system_registry_set_subtext("Calibrating...");
+    ret = motion_monitor_calibrate();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Calibration failed: %s", esp_err_to_name(ret));
+        // We continue anyway, or handle it? For now, just log.
+    }
+
+    // 9. Monitoring Phase
+    system_registry_set_subtext("System Active");
+    system_report_event(SYSTEM_EVENT_INITIALIZED);
+
+    return ESP_OK;
+}
+
 static bool is_system_at_state(system_state_id_t state) {
     return current_system_state == state;
 }
 
 static void state_transition(system_state_id_t new_state) {
-    ESP_LOGI(TAG, "System state transition: %d -> %d",
-             current_system_state, new_state);
+    if (current_system_state == new_state) return;
+    
+    ESP_LOGI(TAG, "FSM Transition: %d -> %d", current_system_state, new_state);
     current_system_state = new_state;
+    system_registry_set_state(new_state);
 }
 
-/***********************************************************************
- * Global function definitions
- ***********************************************************************
- */
-void system_report_error(system_error_id_t err_id) {
-    // Implementation for reporting the error
-    // This could involve logging the error, sending it to a monitoring system, etc.
-    system_event_t evt = {
-        .id = SYSTEM_EVENT_ERROR,
-        .error = err_id
-    };
-    xQueueSend(system_event_queue, &evt, portMAX_DELAY);
-}    
-
-void system_report_event(system_event_id_t event_id) {
-    // Implementation for reporting the event
-    // This could involve logging the event, notifying other system components, etc.
-    system_event_t evt = {
-        .id = event_id,
-        .error = SYSTEM_ERROR_NONE,
-    };
-    xQueueSend(system_event_queue, &evt, portMAX_DELAY);
-}
-
-
-/***********************************************************************
- * Internal function definitions
- * *********************************************************************
- */
 static void system_task(void *pvParameters){
     system_event_t new_evt;
-    while(1)
-    {
+    ESP_LOGI(TAG, "System Supervisor Task Started");
+    
+    while(1) {
         if(xQueueReceive(system_event_queue, &new_evt, portMAX_DELAY)){
             system_event_handler(new_evt);
         }
     }
 }
 
-static void system_init()
-{
-    xTaskCreate(system_task, "system_task", 4096, NULL, 5, NULL);
-    // hardware init() ...
-}
-static void system_event_handler(system_event_t new_event)
-{
-    // Ignore all events except ERROR when in ERROR state
-    // We dont want to transition out of ERROR state without explicit recovery
-    if (current_system_state == SYSTEM_STATE_ERROR &&
-        new_event.id != SYSTEM_EVENT_ERROR) {
-
-        ESP_LOGW(TAG,
-            "FSM frozen. Ignoring event %d in ERROR state",
-            new_event.id);
+static void system_event_handler(system_event_t new_event) {
+    // Global Error Handling
+    if (new_event.id == SYSTEM_EVENT_ERROR) {
+        state_transition(SYSTEM_STATE_ERROR);
         return;
     }
 
-    switch(new_event.id){
-
-        /* ---------- BOOT & INIT ---------- */
+    switch(new_event.id) {
         case SYSTEM_EVENT_BOOT:
-            ESP_LOGI(TAG, "System boot event received");
             if(is_system_at_state(SYSTEM_STATE_IDLE)){
-                system_init();
                 state_transition(SYSTEM_STATE_INITIALIZING);
+                system_init();
             } 
-            else {
-                FSM_WARN_UNEXPECTED(new_event.id);
-            }
             break;
 
         case SYSTEM_EVENT_INITIALIZED:
-            ESP_LOGI(TAG, "System initialized event received");
             if(is_system_at_state(SYSTEM_STATE_INITIALIZING)){
-                //connectivity_start(); 
-                // system only initializes and performs telemetry \n
-                // when connectivity is configured(this will be checked in the connectivity_start() function)
-                // after the connectivity is started, telemetry can start
+                // Check registry for credentials (logic performed in system.c)
+                // This handler just moves the state
                 state_transition(SYSTEM_STATE_MONITORING);
             }
-            else {
-                FSM_WARN_UNEXPECTED(new_event.id);
-            }
-            break;            
-
-        /* ---------- CONFIGURATION ---------- */
-        case SYSTEM_EVENT_START_CONFIGURATION: // user starts configuration through web server
-            ESP_LOGI(TAG, "Start configuration event received");
-            if(is_system_at_state(SYSTEM_STATE_MONITORING)){
-                // start web server task here
-                //connectivity_stop();
-                // attempt to stop telemetry then stop wifi connection if task available
-                state_transition(SYSTEM_STATE_CONFIGURING);
-            }
-            else {
-                FSM_WARN_UNEXPECTED(new_event.id);
-            } 
+            break;
+            
+        case SYSTEM_EVENT_START_CONFIGURATION:
+            state_transition(SYSTEM_STATE_CONFIGURING);
             break;
 
-        case SYSTEM_EVENT_DEVICE_CONFIGURATED: // user finishes configuration through web server
-            ESP_LOGI(TAG, "Device configurated event received");
+        case SYSTEM_EVENT_DEVICE_CONFIGURATED:
             if(is_system_at_state(SYSTEM_STATE_CONFIGURING)){
-                //connectivity_start(); 
-                // system only initializes and performs telemetry \n
-                // when connectivity is configured(this will be checked in the connectivity_start() function)
-                // after the connectivity is started, telemetry can start
-
-                state_transition(SYSTEM_STATE_MONITORING);
+                state_transition(SYSTEM_STATE_MONITORING); // Re-init with new creds
             }
-            else {
-                FSM_WARN_UNEXPECTED(new_event.id);
-            } 
             break;
 
-        /* ---------- FAULT DETECTION ---------- */
         case SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED:
-            ESP_LOGI(TAG, "Elevator fault detected event received");
-            if(is_system_at_state(SYSTEM_STATE_MONITORING)){
-                //device_send_alert(); 
-                // sms and mqtt for fatal faults, sms to phone and mqtt on emergency topic
-                // emergency topic only being sent when connected to broker
-                // sms to phone performs only when sms infos are configured
-                state_transition(SYSTEM_STATE_MONITORING);
-            }
-            else {
-                ESP_LOGW(TAG, "Another fault event arrived when system is not at MONITORING!");
-                FSM_WARN_UNEXPECTED(new_event.id);
-            } 
+            // Handle specific faults...
+            // start a task for sms
+            // needs thinking and implementation later
             break;
 
-        /* ---------- ERROR ---------- */
-        case SYSTEM_EVENT_ERROR:
-            ESP_LOGI(TAG, "System error event received: %d", new_event.error);
-            state_transition(SYSTEM_STATE_ERROR);
-            system_error_handler(new_event.error);
-            break;
-        
         default:
-            ESP_LOGW(TAG, "Unknown system event received: %d", new_event.id);
             break;
     }
 }
 
-static void system_error_handler(system_error_id_t error_id) {
-    switch (error_id) {
-        case SYSTEM_ERROR_NONE:
-        break;
-        case SYSTEM_ERROR_MEMORY_ALLOCATION_FAILED:
-        break;
-        case SYSTEM_ERROR_TASK_CREATION_FAILED:
-        break;
-        case SYSTEM_ERROR_QUEUE_CREATION_FAILED:
-        break;
-        case SYSTEM_ERROR_NVS_INIT_FAILED:
-        break;
-        case SYSTEM_ERROR_SENSOR_INIT_FAILED:
-        break;
-        case SYSTEM_ERROR_ALERT_SUBSYSTEM_FAILED:
-        break;
-        case SYSTEM_ERROR_FAULT_STORAGE_FULL:
-        break;
+/***********************************************************************
+ * GLOBAL FUNCTION DEFINITIONS
+ */
+esp_err_t system_core_init(void) {
+    if (system_event_queue != NULL) return ESP_OK;
+
+    system_event_queue = xQueueCreate(20, sizeof(system_event_t));
+    if (system_event_queue == NULL) {
+        ESP_LOGE(TAG, "Failed to create event queue");
+        return ESP_ERR_NO_MEM;
     }
+    
+    ESP_LOGI(TAG, "System Controller Init Complete (Queue Created)");
+
+    BaseType_t ret = xTaskCreate(system_task, "system_task", 4096, NULL, 10, NULL);
+    if (ret != pdPASS) {
+        ESP_LOGE(TAG, "System controller task failed");
+        return ESP_FAIL;
+    }
+
+    esp_err_t esp_ret = system_registry_init();
+    if(esp_ret != ESP_OK){
+        ESP_LOGE(TAG, "System registry initialization failed");
+        return esp_ret;
+    }
+
+    return ESP_OK;
 }
 
+void system_report_error(system_error_id_t err_id) {
+    if (system_event_queue == NULL) return;
+    system_event_t evt = { .id = SYSTEM_EVENT_ERROR, .error = err_id };
+    xQueueSend(system_event_queue, &evt, 0);
+}    
+
+void system_report_event(system_event_id_t event_id) {
+    if (system_event_queue == NULL) return;
+    system_event_t evt = { .id = event_id, .error = SYSTEM_ERROR_NONE };
+    xQueueSend(system_event_queue, &evt, 0);
+}

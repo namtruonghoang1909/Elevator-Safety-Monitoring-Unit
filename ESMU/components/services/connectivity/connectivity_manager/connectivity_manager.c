@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "connectivity_manager.h"
+#include "system_registry.h"
 
 static const char *TAG = "CONN_MGR";
 
@@ -11,6 +12,15 @@ static connectivity_state_t s_state = CONNECTIVITY_IDLE;
 static bool s_running = false;
 static uint32_t s_wifi_stable_counter = 0;
 #define WIFI_STABILITY_THRESHOLD_SEC 5
+
+static int8_t rssi_to_bars(int8_t rssi) {
+    if (rssi == 0) return 0;
+    if (rssi >= -55) return 4;
+    if (rssi >= -65) return 3;
+    if (rssi >= -75) return 2;
+    if (rssi >= -85) return 1;
+    return 0;
+}
 
 /**
  * @brief Connectivity Orchestrator Task
@@ -23,12 +33,16 @@ static void connectivity_manager_task(void *pvParameters)
     while (s_running) {
         bool wifi_connected = wifi_sta_is_connected();
         bool mqtt_connected = mqtt_manager_is_connected();
+        int8_t rssi = 0;
 
         if (!wifi_connected) {
             // No WiFi - Stop MQTT if it was running
             if (mqtt_started) {
                 ESP_LOGW(TAG, "WiFi lost. Stopping MQTT...");
-                mqtt_manager_stop();
+                esp_err_t err = mqtt_manager_stop();
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to stop MQTT manager: %s", esp_err_to_name(err));
+                }
                 mqtt_started = false;
             }
             s_wifi_stable_counter = 0;
@@ -41,8 +55,13 @@ static void connectivity_manager_task(void *pvParameters)
 
                 if (s_wifi_stable_counter >= WIFI_STABILITY_THRESHOLD_SEC) {
                     ESP_LOGI(TAG, "WiFi stable for %d seconds. Starting MQTT...", WIFI_STABILITY_THRESHOLD_SEC);
-                    mqtt_manager_start();
-                    mqtt_started = true;
+                    esp_err_t err = mqtt_manager_start();
+                    if (err == ESP_OK) {
+                        mqtt_started = true;
+                    } else {
+                        ESP_LOGE(TAG, "Failed to start MQTT manager: %s", esp_err_to_name(err));
+                        s_wifi_stable_counter = 0; // retry later
+                    }
                 } else {
                     ESP_LOGI(TAG, "WiFi connected. Waiting for stability... (%lu/%d)", 
                              s_wifi_stable_counter, WIFI_STABILITY_THRESHOLD_SEC);
@@ -57,11 +76,14 @@ static void connectivity_manager_task(void *pvParameters)
             }
 
             // Monitor RSSI periodically
-            int8_t rssi = connectivity_manager_get_rssi();
+            rssi = connectivity_manager_get_rssi();
             if (rssi < -90) {
                 ESP_LOGW(TAG, "Extremely weak signal: %d dBm. Connectivity may be unstable.", rssi);
             }
         }
+
+        // Update System Registry for UI
+        system_registry_update_wifi(wifi_connected ? rssi_to_bars(rssi) : 0, mqtt_connected);
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -111,7 +133,6 @@ esp_err_t connectivity_manager_start(void)
     ESP_LOGI(TAG, "Connectivity Manager started.");
     return ESP_OK;
 }
-
 esp_err_t connectivity_manager_stop(void)
 {
     s_running = false;
