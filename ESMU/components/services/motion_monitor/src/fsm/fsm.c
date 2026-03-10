@@ -1,6 +1,6 @@
 #include <math.h>
 #include "esp_log.h"
-#include "motion_fsm.h"
+#include "fsm.h"
 
 static const char *TAG = "MM_FSM";
 

@@ -1,4 +1,4 @@
-#include "motion_balance.h"
+#include "balance.h"
 
 balance_state_t mm_balance_update(float accel_x_g, float accel_y_g, float threshold_g) {
     if (accel_x_g < -threshold_g) {

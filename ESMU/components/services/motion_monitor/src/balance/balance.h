@@ -1,5 +1,5 @@
 /**
- * @file motion_balance.h
+ * @file balance.h
  * @brief Elevator balance (tilt) detection logic
  */
 

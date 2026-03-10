@@ -1,8 +1,13 @@
+/**
+ * @file processor.c
+ * @brief Logic orchestrator for motion, balance, and filtering
+ */
+
 #include <string.h>
-#include "motion_processor.h"
-#include "../filter/motion_filter.h"
-#include "../fsm/motion_fsm.h"
-#include "../balance/motion_balance.h"
+#include "processor.h"
+#include "../filter/filter.h"
+#include "../fsm/fsm.h"
+#include "../balance/balance.h"
 
 #define TILT_THRESHOLD_G 0.05f
 
