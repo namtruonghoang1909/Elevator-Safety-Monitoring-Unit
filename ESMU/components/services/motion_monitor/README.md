@@ -16,12 +16,12 @@ The service is decoupled into logical modules for better testability and mainten
 
 | Module | Location | Responsibility |
 | :--- | :--- | :--- |
-| **Public API** | `motion_monitor.c` | External interface and context management. |
-| **Task Layer** | `src/core/motion_task.c` | FreeRTOS task, sensor polling (100Hz), and Mutex locking. |
-| **Processor** | `src/core/motion_processor.c` | **Pure Logic** orchestrator (Filter -> FSM -> Balance). |
-| **Filter** | `src/filter/motion_filter.c` | Signal smoothing (EMA) and basic math. |
-| **FSM** | `src/fsm/motion_fsm.c` | Elevator movement state transitions and debouncing. |
-| **Balance** | `src/balance/motion_balance.c` | Tilt detection based on X/Y gravity vectors. |
+| **Public API** | `service.c` | External interface and context management. |
+| **Task Layer** | `src/core/task.c` | FreeRTOS task, sensor polling (100Hz), and Mutex locking. |
+| **Processor** | `src/core/processor.c` | **Pure Logic** orchestrator (Filter -> FSM -> Balance). |
+| **Filter** | `src/filter/filter.c` | Signal smoothing (EMA) and basic math. |
+| **FSM** | `src/fsm/fsm.c` | Elevator movement state transitions and debouncing. |
+| **Balance** | `src/balance/balance.c` | Tilt detection based on X/Y gravity vectors. |
 
 ## 📊 Data Types
 
