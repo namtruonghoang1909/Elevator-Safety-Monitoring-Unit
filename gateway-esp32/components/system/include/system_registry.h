@@ -20,10 +20,11 @@ typedef struct {
     system_state_id_t current_state;
     int8_t wifi_level;         // 0-4 bars
     bool mqtt_connected;
+    bool edge_node_connected;  // Status of the remote STM32 node
     char motion_state[16];     // "IDLE", "UP", "DOWN"
     char balance_state[16];    // "STABLE", "TILTING"
     char elevator_health[16];  // "GOOD", "SICK", "CRITICAL"
-    bool has_wifi_creds; // True if SSID/Pass are configured
+    bool has_wifi_creds;       // True if SSID/Pass are configured
     char sub_status[32];       // "Starting WiFi...", "Device configured!"
     uint32_t uptime_sec;
     bool fault_active;         // Triggers inverse video/alert view
@@ -53,6 +54,12 @@ void system_registry_set_subtext(const char* text);
  * @param connected MQTT connection status
  */
 void system_registry_update_wifi(int8_t level, bool connected);
+
+/**
+ * @brief Update Edge Node (Remote STM32) connection status
+ * @param connected True if heartbeats are being received
+ */
+void system_registry_update_edge_status(bool connected);
 
 /**
  * @brief Update motion and balance telemetry

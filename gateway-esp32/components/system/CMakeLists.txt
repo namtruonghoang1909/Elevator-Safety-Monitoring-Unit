@@ -2,6 +2,7 @@ idf_component_register(
     SRCS 
         "system.c"
         "system_registry.c"
+        "nvs_storage.c"
         "controller/system_controller.c"
     INCLUDE_DIRS "include"
     REQUIRES 
@@ -15,5 +16,4 @@ idf_component_register(
         display
         connectivity_manager
         motion_monitor
-        mpu6050
 )

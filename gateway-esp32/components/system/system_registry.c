@@ -17,6 +17,20 @@ static SemaphoreHandle_t g_registry_mutex = NULL;
 #define LOCK_REG()   (xSemaphoreTake(g_registry_mutex, pdMS_TO_TICKS(10)) == pdTRUE)
 #define UNLOCK_REG() (xSemaphoreGive(g_registry_mutex))
 
+/**
+ * @brief Background task to increment and update uptime
+ */
+static void uptime_task(void *pvParameters) {
+    uint32_t uptime_sec = 0;
+    while (1) {
+        if (LOCK_REG()) {
+            g_registry.uptime_sec = uptime_sec++;
+            UNLOCK_REG();
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
 esp_err_t system_registry_init(void) {
     if (g_registry_mutex != NULL) return ESP_OK;
 
@@ -29,6 +43,9 @@ esp_err_t system_registry_init(void) {
     strncpy(g_registry.motion_state, "IDLE", sizeof(g_registry.motion_state) - 1);
     strncpy(g_registry.balance_state, "STABLE", sizeof(g_registry.balance_state) - 1);
     strncpy(g_registry.elevator_health, "GOOD", sizeof(g_registry.elevator_health) - 1);
+
+    // Create background uptime task
+    xTaskCreate(uptime_task, "uptime_task", 2048, NULL, 1, NULL);
 
     return ESP_OK;
 }
@@ -55,6 +72,13 @@ void system_registry_update_wifi(int8_t level, bool connected) {
     if (LOCK_REG()) {
         g_registry.wifi_level = level;
         g_registry.mqtt_connected = connected;
+        UNLOCK_REG();
+    }
+}
+
+void system_registry_update_edge_status(bool connected) {
+    if (LOCK_REG()) {
+        g_registry.edge_node_connected = connected;
         UNLOCK_REG();
     }
 }
