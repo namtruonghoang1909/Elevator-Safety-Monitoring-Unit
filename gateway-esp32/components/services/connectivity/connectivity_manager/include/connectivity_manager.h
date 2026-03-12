@@ -2,7 +2,7 @@
  * @file connectivity_manager.h
  * @brief Orchestrator for WiFi and MQTT connectivity
  *
- * Coordinates wifi_sta and mqtt_manager to ensure a stable network stack.
+ * Coordinates wifi_manager and mqtt_manager to ensure a stable network stack.
  * Handles stability timers, RSSI monitoring, and automatic reconnection logic.
  */
 
@@ -11,7 +11,7 @@
 
 #include <stdbool.h>
 #include "esp_err.h"
-#include "wifi_sta.h"
+#include "wifi_manager.h"
 #include "mqtt_manager.h"
 
 /**
@@ -19,6 +19,7 @@
  */
 typedef enum {
     CONNECTIVITY_IDLE,          /**< Not initialized or not started */
+    CONNECTIVITY_PROVISIONING,  /**< SoftAP Mode for WiFi setup */
     CONNECTIVITY_WIFI_ONLY,      /**< WiFi connected, MQTT not yet started or connected */
     CONNECTIVITY_FULL,          /**< Both WiFi and MQTT are connected */
     CONNECTIVITY_RECOVERING,    /**< WiFi is up, but MQTT is in a retry/backoff loop */
@@ -29,7 +30,7 @@ typedef enum {
  * @brief Configuration for the Connectivity Manager
  */
 typedef struct {
-    wifi_sta_user_config_t wifi_config;   /**< WiFi configuration */
+    wifi_manager_config_t wifi_config;   /**< WiFi configuration */
     mqtt_manager_config_t mqtt_config;   /**< MQTT configuration */
 } connectivity_config_t;
 
