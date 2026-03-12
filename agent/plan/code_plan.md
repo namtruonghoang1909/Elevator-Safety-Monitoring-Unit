@@ -51,3 +51,65 @@ Located in `components/system/include/system_registry.h`.
 2. **Assets**: Implement `display_font.h` (ASCII) and `display_icons.h`.
 3. **Display Service**: Implement Layer 1 -> Layer 2 -> Layer 3.
 4. **Integration**: Hook existing services into the Registry and verify the data flow.
+
+---
+
+# WiFi Provisioning System Implementation Plan (SoftAP + Web Server)
+
+## 1. Objective
+Implement a user-friendly WiFi provisioning system that allows the ESMU to boot into Access Point (AP) mode, host a web portal for entering home WiFi credentials, and persist these credentials in Non-Volatile Storage (NVS).
+
+## 2. Key Components & Context
+- **NVS Manager**: Storage for WiFi SSID/Password.
+- **WiFi Service**: Supports both AP and STA modes.
+- **Web Server**: Hosts the HTML form and handles credential submission.
+- **Connectivity Manager**: Orchestrates the flow between Provisioning and Normal Operation.
+
+## 3. Implementation Steps
+
+### Phase 1: NVS Storage Implementation
+1. **Create `nvs_storage` component**:
+    - Implement `nvs_storage_init()` to initialize NVS flash.
+    - Implement `nvs_storage_save_wifi_creds(ssid, password)`.
+    - Implement `nvs_storage_load_wifi_creds(ssid, password, max_len)`.
+    - Implement `nvs_storage_clear_wifi_creds()`.
+
+### Phase 2: Web Server Component
+1. **Create `web_server` component**:
+    - Use `esp_http_server` component.
+    - Implement `web_server_start()` and `web_server_stop()`.
+    - Create a static HTML string for the provisioning form.
+    - Implement a POST handler for `/config` to receive SSID/Password.
+    - Signal the `connectivity_manager` when credentials are received.
+
+### Phase 3: WiFi Service Enhancements
+1. **Modify `wifi_sta.c`**:
+    - Rename/Refactor to `wifi_manager.c` to support `WIFI_MODE_AP` and `WIFI_MODE_STA`.
+    - Implement `wifi_manager_start_ap(const char *ssid, const char *password)`.
+    - Ensure both modes can be switched gracefully.
+
+### Phase 4: Connectivity Manager Orchestration
+1. **Update `connectivity_manager.c` logic**:
+    - **Startup**:
+        - Try loading credentials from NVS.
+        - If (not found): Start `wifi_manager` in AP mode + Start `web_server`.
+        - If (found): Start `wifi_manager` in STA mode + Continue to MQTT.
+    - **Provisioning Flow**:
+        - Once `/config` is submitted, stop `web_server`, stop AP mode.
+        - Save to NVS.
+        - Start STA mode with new credentials.
+
+### Phase 5: UI Integration
+1. **Update `display_service`**:
+    - Show "AP Mode: ESMU-Setup" on the OLED when in provisioning mode.
+    - Show the IP address (`192.168.4.1`) for the user to visit.
+
+## 4. Verification & Testing
+1. **NVS Test**: Manually trigger save/load and verify persistence across reboots.
+2. **AP Mode Test**: Verify the "ESMU-Setup" SSID appears on a phone/PC.
+3. **Web Portal Test**: Connect to the AP, open `192.168.4.1`, and submit dummy credentials.
+4. **Transition Test**: Verify the device successfully switches to STA mode after submission.
+
+## 5. Migration & Rollback
+- If provisioning fails, the device should time out and return to AP mode or keep old credentials.
+- Add a "Reset to Defaults" mechanism (e.g., hold button for 10s) to clear NVS.

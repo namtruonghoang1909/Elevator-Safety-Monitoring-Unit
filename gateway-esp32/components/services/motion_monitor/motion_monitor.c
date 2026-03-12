@@ -1,30 +1,30 @@
 /**
  * @file motion_monitor.c
- * @brief Motion Monitor service for elevator movement and vibration analysis
+ * @brief Motion Monitor service (Remote Proxy version for Distributed ESMU)
  */
 
 #include <stdio.h>
 #include <string.h>
 #include "esp_log.h"
 #include "motion_monitor.h"
-#include "core/task.h"
+#include "src/core/task.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "MOTION_MONITOR";
-#define CALIBRATION_SAMPLES 200
 
 static mm_task_ctx_t s_ctx;
 
 esp_err_t motion_monitor_init(const motion_monitor_config_t *cfg) {
-    esp_err_t err;
-
-    err = mm_task_init(&s_ctx, cfg);
+    esp_err_t err = mm_task_init(&s_ctx, cfg);
     if (err != ESP_OK) return err;
 
-    err = mm_task_start(&s_ctx, cfg);
-    if (err != ESP_OK) return err;
-
-    ESP_LOGI(TAG, "Service initialized (Alpha: %.2f)", s_ctx.processor.alpha);
+    ESP_LOGI(TAG, "Service initialized in Remote Proxy mode");
     return ESP_OK;
+}
+
+esp_err_t motion_monitor_update(const motion_metrics_t *metrics) {
+    return mm_task_update_metrics(&s_ctx, metrics);
 }
 
 esp_err_t motion_monitor_get_metrics(motion_metrics_t *out) {
@@ -53,56 +53,13 @@ balance_state_t motion_monitor_get_equilibrium(void) {
     return balance;
 }
 
-esp_err_t motion_monitor_calibrate(void) {
-    if (s_ctx.mpu_id == 0xFF) {
-        mm_processor_set_baseline(&s_ctx.processor, 0.0f, 0.0f, 1.0f);
-        s_ctx.is_calibrated = true;
-        return ESP_OK;
-    }
-    
-    float sum_x = 0, sum_y = 0, sum_z = 0;
-    mpu6050_scaled_data_t raw;
-    int valid_samples = 0;
-
-    for (int i = 0; i < CALIBRATION_SAMPLES; i++) {
-        if (mpu6050_read_scaled(s_ctx.mpu_id, &raw) == ESP_OK) {
-            sum_x += raw.accel_x_g;
-            sum_y += raw.accel_y_g;
-            sum_z += raw.accel_z_g;
-            valid_samples++;
-        }
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-
-    if (valid_samples < (CALIBRATION_SAMPLES / 2)) {
-        ESP_LOGE(TAG, "Calibration failed: Too many I2C errors");
-        return ESP_FAIL;
-    }
-
-    xSemaphoreTake(s_ctx.lock, portMAX_DELAY);
-    mm_processor_set_baseline(&s_ctx.processor, 
-                              sum_x / valid_samples, 
-                              sum_y / valid_samples, 
-                              sum_z / valid_samples);
-    s_ctx.is_calibrated = true;
-    xSemaphoreGive(s_ctx.lock);
-
-    ESP_LOGI(TAG, "Calibration complete (Offsets X:%.3f, Y:%.3f, Z:%.3f)", 
-             s_ctx.processor.offset_x, s_ctx.processor.offset_y, s_ctx.processor.gravity_offset_z);
-    return ESP_OK;
-}
-
-esp_err_t motion_monitor_set_filter_alpha(float alpha) {
-    if (alpha <= 0.0f || alpha > 1.0f) return ESP_ERR_INVALID_ARG;
-    if (!s_ctx.lock) return ESP_FAIL;
+bool motion_monitor_is_alive(uint32_t timeout_ms) {
+    if (!s_ctx.lock) return false;
     
     xSemaphoreTake(s_ctx.lock, portMAX_DELAY);
-    s_ctx.processor.alpha = alpha;
+    uint32_t last = s_ctx.metrics.last_update;
     xSemaphoreGive(s_ctx.lock);
-    return ESP_OK;
-}
 
-esp_err_t motion_monitor_inject_sample(const mpu6050_scaled_data_t *raw_sample) {
-    mm_task_process_sample(&s_ctx, raw_sample);
-    return ESP_OK;
+    uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    return (now - last) < timeout_ms;
 }

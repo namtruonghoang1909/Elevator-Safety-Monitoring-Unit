@@ -43,13 +43,13 @@ static void display_refresh_task(void *pvParameters) {
                 break;
 
             case SYSTEM_STATE_MONITORING:
-                ui_draw_header(g_fb, snap.wifi_level, snap.mqtt_connected);
+                ui_draw_header(g_fb, snap.wifi_level, snap.mqtt_connected, snap.edge_node_connected);
                 ui_draw_footer(g_fb, snap.uptime_sec);
                 ui_draw_monitoring_view(g_fb, snap.motion_state, snap.balance_state, snap.elevator_health);
                 break;
 
             case SYSTEM_STATE_CONFIGURING:
-                ui_draw_header(g_fb, snap.wifi_level, snap.mqtt_connected);
+                ui_draw_header(g_fb, snap.wifi_level, snap.mqtt_connected, snap.edge_node_connected);
                 ui_draw_footer(g_fb, snap.uptime_sec);
                 ui_draw_configuring_view(g_fb, snap.sub_status);
                 break;

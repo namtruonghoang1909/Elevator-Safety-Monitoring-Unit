@@ -16,9 +16,9 @@ The service is organized into three distinct layers for modularity:
 
 - **Dynamic Refresh**: 15Hz background refresh task.
 - **Enhanced Monitoring**: Interactive elevator visualization that tilts (LEFT/RIGHT) and shows motion (UP/DOWN/IDLE).
-- **Status Dashboard**: Integrated header with WiFi/MQTT icons and a footer with uptime and system heartbeats.
+- **Custom Art Icons**: Includes a realistic 16x8 bumpy cloud bitmap and vertical WiFi signal bars.
+- **Provisioning Interface**: Dedicated "CONFIG MODE" view showing "Wi-Fi:" SSID and Web portal IP address.
 - **Fault Indicators**: Automatic inverse-video "EMERGENCY" mode triggered by the system state.
-- **Resource Optimized**: Shortened strings and efficient bitmap drawing to minimize I2C overhead.
 
 ## Public API
 
@@ -27,8 +27,8 @@ The service is organized into three distinct layers for modularity:
 
 ## UI Layout
 
-- **Header**: WiFi signal bars (0-4) and MQTT cloud icon.
+- **Header**: Vertical WiFi bars (0-4) and 16x8 realistic MQTT cloud icon.
 - **Main View**: 
-    - Left: Tilting elevator box with motion arrows.
-    - Right: Health status and Balance description.
-- **Footer**: Shortened uptime (e.g., `U:01d02h30m`), centered project name (`ESMU`), and heartbeat icon.
+    - **Monitoring**: Tilting elevator box with motion arrows + Health/Balance text.
+    - **Configuring**: Large "CONFIG MODE" title + "Wi-Fi: [SSID]" + "Web: [IP]".
+- **Footer**: Shortened uptime (e.g., `UP:01d 02h 30m`), centered project name (`ESMU`), and heartbeat icon.

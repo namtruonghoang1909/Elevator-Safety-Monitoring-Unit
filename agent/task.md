@@ -1,16 +1,22 @@
-# Current Task: Documentation & Final Polish
+# Current Task: Distributed System Integration & CAN Protocol
 
 ## Goal
-Update all project documentation and finalize UI/code organization.
+Establish communication between ESP32 (Gateway) and STM32 (Edge) and move safety-critical logic to the Edge.
 
 ## Completed
 - [x] Implement enhanced monitoring view (tilting elevator).
-- [x] Move MQTT icon next to WiFi.
-- [x] Center "ESMU" in footer.
-- [x] Rename internal display files (remove `display_`).
-- [x] Rename internal motion monitor files (remove `motion_`).
-- [x] Update all READMEs in the project.
-- [x] Add explicit `esp_err_t` logging to all service calls.
+- [x] Rename internal display and motion monitor files for clarity.
+- [x] Add explicit `esp_err_t` logging across all services.
+- [x] **WiFi Provisioning System**:
+    - [x] NVS storage for credentials.
+    - [x] Web Server with URL decoding (fixed space issue).
+    - [x] 5-second button hold trigger (GPIO 15).
+    - [x] Status LED blinking feedback (GPIO 4).
+    - [x] UI "CONFIG MODE" display view.
 
-## Pending
-- [ ] Implement Fault Detector service (Next Task).
+## Pending (Next Phase)
+- [ ] **Protocol Definition**: Create `shared/protocol/esmu_protocol.h` for CAN/UART data structures.
+- [ ] **STM32 Porting**: Move MPU6050 driver and `motion_monitor` logic to `edge-stm32`.
+- [ ] **Fault Detector**: Implement the core anomaly detection logic on the STM32.
+- [ ] **CAN Driver**: Implement CAN communication on both platforms.
+- [ ] **Gateway Update**: Modify ESP32 to visualize data received via CAN instead of local sensors.

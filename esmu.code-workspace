@@ -24,6 +24,7 @@
 			"**/.pio": true,
 			"**/Debug": true,
 			"**/Release": true
-		}
+		},
+		"stm32cube-ide-clangd.path": "cube"
 	}
 }

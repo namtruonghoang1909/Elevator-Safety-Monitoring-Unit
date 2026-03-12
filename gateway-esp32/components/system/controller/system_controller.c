@@ -14,14 +14,12 @@
 #include "connectivity_manager.h"
 #include "motion_monitor.h"
 #include "i2c_platform.h"
-#include "mpu6050.h"
 #include "nvs_flash.h"
 
 static const char *TAG = "SYS_CTRL";
 
 static system_state_id_t current_system_state = SYSTEM_STATE_IDLE;
 static QueueHandle_t system_event_queue = NULL;
-
 
 /***********************************************************************
  * STATIC FUNCTION DECLARATIONS
@@ -37,50 +35,29 @@ static void state_transition(system_state_id_t new_state);
  */
 static esp_err_t system_init()
 {
-    // 1. NVS init
-    esp_err_t ret = nvs_flash_init();   
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ret = nvs_flash_erase();
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "NVS erase failed: %s", esp_err_to_name(ret));
-            return ret;
-        }
-        ret = nvs_flash_init();
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "NVS re-init failed: %s", esp_err_to_name(ret));
-            return ret;
-        }
-    } else if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "NVS init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    // 2. Platform Init
+    // 1. Platform Init (Needed for SSD1306)
     uint8_t bus_id;
-    ret = i2c_bus_init(&bus_id, 21, 22);
+    esp_err_t ret = i2c_bus_init(&bus_id, 21, 22);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "I2C bus init failed: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    // 4. Manual Initialization Sequence (Since we are in INITIALIZING now)
+    // 2. Manual Initialization Sequence (Since we are in INITIALIZING now)
     ret = display_service_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Display service init failed: %s", esp_err_to_name(ret));
         return ret;
     }
-    system_registry_set_subtext("Booting ESMU...");
-    vTaskDelay(pdMS_TO_TICKS(1500));
+    system_registry_set_subtext("Booting ESMU Gateway...");
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    // 5. Sensor Init
-    system_registry_set_subtext("Starting Sensors...");
-
-    // 7. Production Services
-    system_registry_set_subtext("Starting WiFi...");
+    // 3. Connectivity Services
+    system_registry_set_subtext("Connectivity Init...");
     connectivity_config_t conn_cfg = {
         .wifi_config = { 
-            .ssid = WIFI_SSID, 
-            .password = WIFI_PASS, 
+            .ssid = NULL,       // Let NVS/Provisioning handle it
+            .password = NULL,
             .auto_reconnect = true,
         },
         .mqtt_config = { 
@@ -103,30 +80,10 @@ static esp_err_t system_init()
         return ret;
     }
 
-    // 8. Motion monitor init & Calibration Phase
-    mpu6050_config_t mpu_cfg = {
-        .address = 0x68,
-        .name = "MPU6050",
-        .scl_speed_hz = 400000,
-        .bus_id = 0,
-        .accel_full_scale = MPU6050_ACCEL_FS_8G,
-        .gyro_full_scale = MPU6050_GYRO_FS_500_DPS,
-        .use_gyro_pll = true,
-        .enable_digital_filter = true,
-    };
-    uint8_t mpu_id;
-    ret = mpu6050_init(&mpu_cfg, &mpu_id);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "MPU6050 init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    system_registry_set_subtext("Lay device flat!");
+    // 8. Motion monitor init (Remote Sink Mode)
+    system_registry_set_subtext("Waiting for Edge Node...");
     motion_monitor_config_t mm_cfg = {
-        .mpu_dev_id = mpu_id,
-        .filter_alpha = 0.2f,
-        .task_priority = 5,
-        .task_stack = 4096
+        .stats_update_ms = 1000
     };
     ret = motion_monitor_init(&mm_cfg);
     if (ret != ESP_OK) {
@@ -135,15 +92,9 @@ static esp_err_t system_init()
     }
     
     vTaskDelay(pdMS_TO_TICKS(1500));
-    system_registry_set_subtext("Calibrating...");
-    ret = motion_monitor_calibrate();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Calibration failed: %s", esp_err_to_name(ret));
-        // We continue anyway, or handle it? For now, just log.
-    }
 
     // 9. Monitoring Phase
-    system_registry_set_subtext("System Active");
+    system_registry_set_subtext("Gateway Active");
     system_report_event(SYSTEM_EVENT_INITIALIZED);
 
     return ESP_OK;
@@ -189,8 +140,6 @@ static void system_event_handler(system_event_t new_event) {
 
         case SYSTEM_EVENT_INITIALIZED:
             if(is_system_at_state(SYSTEM_STATE_INITIALIZING)){
-                // Check registry for credentials (logic performed in system.c)
-                // This handler just moves the state
                 state_transition(SYSTEM_STATE_MONITORING);
             }
             break;
@@ -201,14 +150,9 @@ static void system_event_handler(system_event_t new_event) {
 
         case SYSTEM_EVENT_DEVICE_CONFIGURATED:
             if(is_system_at_state(SYSTEM_STATE_CONFIGURING)){
-                state_transition(SYSTEM_STATE_MONITORING); // Re-init with new creds
+                state_transition(SYSTEM_STATE_MONITORING); 
+                system_registry_set_subtext("WiFi Configured");
             }
-            break;
-
-        case SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED:
-            // Handle specific faults...
-            // start a task for sms
-            // needs thinking and implementation later
             break;
 
         default:

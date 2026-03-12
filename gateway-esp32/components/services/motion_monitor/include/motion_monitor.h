@@ -1,21 +1,22 @@
 /**
  * @file motion_monitor.h
- * @brief Motion Monitor service for elevator movement and vibration analysis
+ * @brief Motion Monitor service (Remote Proxy version for Distributed ESMU)
  */
 
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "esp_err.h"
-#include "mpu6050.h"
 
 /**
  * @brief Logical elevator motion states
  */
 typedef enum {
     MOTION_STATE_STATIONARY,        /**< Elevator is not moving */
-    MOTION_STATE_MOVING_UP,          /**< Elevator is ascending (Accel or Constant) */
+    MOTION_STATE_MOVING_UP,          /**< Elevator is ascending */
     MOTION_STATE_DECELERATING_UP,    /**< Elevator is braking while going up */
-    MOTION_STATE_MOVING_DOWN,        /**< Elevator is descending (Accel or Constant) */
+    MOTION_STATE_MOVING_DOWN,        /**< Elevator is descending */
     MOTION_STATE_DECELERATING_DOWN,  /**< Elevator is braking while going down */
     MOTION_STATE_ACCELERATING        /**< Generic high-G transient */
 } motion_state_t;
@@ -32,15 +33,15 @@ typedef enum {
 } balance_state_t;
 
 /**
- * @brief Processed motion metrics (filtered and compensated)
+ * @brief Processed motion metrics (Received from Remote Node)
  */
 typedef struct {
-    float lin_accel_z;      /**< Linear vertical acceleration (g) - Gravity removed */
-    float shake_mag;        /**< Horizontal vibration magnitude (g) - sqrt(X^2 + Y^2) */
-    float gyro_roll_dps;    /**< Filtered angular velocity around X (°/s) */
-    float gyro_pitch_dps;   /**< Filtered angular velocity around Y (°/s) */
-    motion_state_t state;   /**< Current logical elevator movement state */
-    balance_state_t balance;/**< Current logical elevator balance state */
+    float lin_accel_z;      /**< Linear vertical acceleration (g) */
+    float shake_mag;        /**< Horizontal vibration magnitude (g) */
+    float gyro_roll_dps;    /**< Angular velocity around X (°/s) */
+    float gyro_pitch_dps;   /**< Angular velocity around Y (°/s) */
+    motion_state_t state;   /**< Logical elevator movement state */
+    balance_state_t balance;/**< Logical elevator balance state */
     uint32_t last_update;   /**< Timestamp of last calculation (ms) */
 } motion_metrics_t;
 
@@ -48,19 +49,24 @@ typedef struct {
  * @brief Motion monitor configuration
  */
 typedef struct {
-    uint8_t mpu_dev_id;     /**< Initialized MPU6050 device ID */
-    float filter_alpha;      /**< EMA filter alpha (0.0 - 1.0, default ~0.2) */
-    uint32_t task_priority;  /**< FreeRTOS task priority */
-    uint32_t task_stack;     /**< FreeRTOS task stack size (bytes) */
+    uint32_t stats_update_ms; /**< Interval for status checks (ms) */
 } motion_monitor_config_t;
 
 /**
- * @brief Initialize the motion monitor service and start the background task
+ * @brief Initialize the motion monitor service (Remote Sink mode)
  * 
  * @param cfg Configuration parameters
  * @return ESP_OK on success
  */
 esp_err_t motion_monitor_init(const motion_monitor_config_t *cfg);
+
+/**
+ * @brief Update the internal state with metrics received from CAN/Remote node
+ * 
+ * @param metrics Pointer to the latest metrics received from the edge node
+ * @return ESP_OK on success
+ */
+esp_err_t motion_monitor_update(const motion_metrics_t *metrics);
 
 /**
  * @brief Get a thread-safe copy of the latest motion metrics
@@ -85,26 +91,9 @@ motion_state_t motion_monitor_get_motion(void);
 balance_state_t motion_monitor_get_equilibrium(void);
 
 /**
- * @brief Perform a 2-second calibration sequence to "zero" the gravity vector
+ * @brief Check if the remote motion data is fresh
  * 
- * @note The unit must be STATIONARY during this call. This is a blocking call.
- * @return ESP_OK on success
+ * @param timeout_ms Maximum allowed age of the data
+ * @return true if fresh, false if stale/offline
  */
-esp_err_t motion_monitor_calibrate(void);
-
-/**
- * @brief Dynamically adjust the EMA filter responsiveness
- * 
- * @param alpha New alpha value (0.2 = smooth, 0.8 = fast)
- * @return ESP_OK on success
- */
-esp_err_t motion_monitor_set_filter_alpha(float alpha);
-
-/**
- * @brief Inject a raw sample for logic testing (bypasses hardware task)
- * 
- * @note Used only for Unity tests.
- * @param raw_sample Pointer to simulated raw scaled data
- * @return ESP_OK on success
- */
-esp_err_t motion_monitor_inject_sample(const mpu6050_scaled_data_t *raw_sample);
+bool motion_monitor_is_alive(uint32_t timeout_ms);
