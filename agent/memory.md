@@ -79,11 +79,23 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
 - **Comprehensive Docs**: Updated all existing READMEs and created missing documentation for `mpu6050`, `ssd1306`, `i2c_platform`, and `connectivity` stack. Added `agent/README.md` to explain agent metadata.
 - **UI Refinement**: Moved MQTT icon to the header's left side (next to WiFi) and centered "ESMU" in the footer.
 
+### 10. WiFi Provisioning & UI Refinement (March 2026)
+- **Component**: Created `components/services/connectivity/web_server`.
+- **SoftAP Portal**: Implemented a web-based configuration interface served at `192.168.4.1` when the device enters AP mode (`ESMU-Setup`).
+- **URL Decoding**: Fixed connection issues with SSIDs containing spaces by implementing a custom URL decoder.
+- **Hardware Toggle**: Enhanced the GPIO 15 logic to allow **bidirectional switching**:
+    - STA -> AP: Hold 5s to configure.
+    - AP -> STA: Hold 5s to cancel and return to normal operation.
+- **Artistic UI**:
+    - **Cloud Icon**: Implemented a custom 16x8 organic cloud based on a specific binary bitmap (3 bumps up, 2 bumps down).
+    - **WiFi Icon**: Reverted to classic vertical bars for maximum readability while maintaining the "Wi-Fi:" label in Config Mode.
+- **Persistence**: Integrated with `nvs_storage` to ensure credentials survive power cycles.
+
 ---
 
 ## Current Project State
 - **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306.
-- **Connectivity Layer**: [COMPLETE] wifi_sta, mqtt_manager, connectivity_manager.
+- **Connectivity Layer**: [COMPLETE] wifi_manager, mqtt_manager, connectivity_manager, web_server.
 - **Service Layer**: 
     - Motion Monitor: [COMPLETE]
     - Display Service: [COMPLETE]
@@ -92,6 +104,6 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - System Controller: [PARTIAL]
 
 ## Next Session Focus
-- Implement the **Fault Detector** service to analyze motion metrics for anomalies (shakes, freefall).
-- Finalize the `system_controller` FSM transitions for error recovery.
-- Add hardware-in-the-loop tests for the `display_service`.
+- Implement the **Fault Detector** service to analyze motion metrics for anomalies.
+- Define the **CAN Communication** protocol for distributed processing between ESP32 and STM32.
+- Transition `motion_monitor` to the STM32 edge node.
