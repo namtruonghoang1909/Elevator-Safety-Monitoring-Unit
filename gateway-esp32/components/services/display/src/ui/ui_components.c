@@ -30,7 +30,7 @@ static void ui_draw_elevator_box(uint8_t *fb, int x, int y, int w, int h, int ti
     for (int i = 1; i <= 4; i++) display_draw_pixel(fb, center_x - offset, y + h + i, true);
 }
 
-void ui_draw_header(uint8_t *fb, int8_t wifi_level, bool mqtt_ok) {
+void ui_draw_header(uint8_t *fb, int8_t wifi_level, bool mqtt_ok, bool edge_node_ok) {
     const uint8_t *wifi_icon;
     switch (wifi_level) {
         case 4: wifi_icon = WIFI_ICON_4_BARS; break;
@@ -41,9 +41,14 @@ void ui_draw_header(uint8_t *fb, int8_t wifi_level, bool mqtt_ok) {
     }
     display_draw_bitmap(fb, 0, 0, 8, 8, wifi_icon);
 
-    // MQTT Cloud Icon (Static fill based on connection)
+    // MQTT Cloud Icon (16x8)
     const uint8_t *mqtt_icon = mqtt_ok ? ICON_CLOUD_ACTIVE : ICON_CLOUD_DISCONNECTED;
-    display_draw_bitmap(fb, 12, 0, 8, 8, mqtt_icon);
+    display_draw_bitmap(fb, 12, 0, 16, 8, mqtt_icon);
+
+    // Edge Node Status (Shifted right to account for 16px cloud)
+    if (edge_node_ok) {
+        display_draw_bitmap(fb, 32, 0, 8, 8, ICON_EDGE_OK);
+    }
 
     // Center "ESMU" in the header (128/2 - (4*6)/2 = 64 - 12 = 52)
     display_draw_string(fb, 52, 0, "ESMU");
@@ -100,8 +105,30 @@ void ui_draw_monitoring_view(uint8_t *fb, const char *motion, const char *balanc
 }
 
 void ui_draw_configuring_view(uint8_t *fb, const char *subtext) {
-    display_draw_string(fb, 30, 20, "CONFIG MODE");
-    if (subtext) display_draw_string(fb, 10, 35, subtext);
+    display_draw_string(fb, 30, 12, "CONFIG MODE");
+    display_draw_hline(fb, 25, 103, 22);
+
+    if (subtext) {
+        char buf[64];
+        strncpy(buf, subtext, sizeof(buf)-1);
+        buf[sizeof(buf)-1] = '\0';
+
+        char *ssid = buf;
+        char *ip = strchr(buf, '\n');
+        
+        if (ip) {
+            *ip = '\0';
+            ip++; // Move past the newline
+            
+            display_draw_string(fb, 5, 28, "Wi-Fi: ");
+            display_draw_string(fb, 45, 28, ssid);
+            
+            display_draw_string(fb, 5, 40, "Web: ");
+            display_draw_string(fb, 45, 40, ip);
+        } else {
+            display_draw_string(fb, 10, 32, subtext);
+        }
+    }
 }
 
 void ui_draw_error_view(uint8_t *fb, const char *msg) {
