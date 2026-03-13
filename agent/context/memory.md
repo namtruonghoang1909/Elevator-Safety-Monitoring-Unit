@@ -39,7 +39,7 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - **Checkerboard Pattern**: Confirmed no dead pixels and correct page mapping.
     - **Fill/Clear**: Verified full-screen white (0xFF) and black (0x00) states.
     - **Horizontal Scrolling**: Verified hardware scrolling (Right) and stop functionality.
-- **Integration**: Updated `agent/roadmap.md` and `agent/todo.md` to reflect the completed verification.
+- **Integration**: Updated `agent/context/roadmap.md` and `agent/temporary/task.md` to reflect the completed verification.
 
 ### 6. Motion Monitor Service Implementation (Task 06)
 - **Component**: Created `components/services/motion_monitor`.
