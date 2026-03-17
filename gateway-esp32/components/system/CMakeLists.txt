@@ -11,9 +11,12 @@ idf_component_register(
         log 
         freertos 
         esp_system
+        can_protocol
     PRIV_REQUIRES 
         i2c_platform
         display
         connectivity_manager
-        motion_monitor
+        motion_proxy
+        telemetry
+        can_platform
 )

@@ -13,13 +13,49 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 static const char *TAG = "DISP_SVC";
+
+#define MAX_LOG_LINES 4
+#define LINE_LEN 24
 
 static uint8_t g_dev_id = 0;
 static uint8_t g_fb[1024]; 
 static TaskHandle_t g_refresh_task_handle = NULL;
 static bool g_is_initialized = false;
+
+static char s_log_lines[MAX_LOG_LINES][LINE_LEN];
+static int s_line_count = 0;
+
+void display_service_log(const char *fmt, ...) {
+    char new_line[LINE_LEN];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(new_line, sizeof(new_line), fmt, args);
+    va_end(args);
+
+    // Scroll if full
+    if (s_line_count >= MAX_LOG_LINES) {
+        for (int i = 0; i < MAX_LOG_LINES - 1; i++) {
+            memcpy(s_log_lines[i], s_log_lines[i+1], LINE_LEN);
+        }
+        memcpy(s_log_lines[MAX_LOG_LINES - 1], new_line, LINE_LEN);
+    } else {
+        memcpy(s_log_lines[s_line_count], new_line, LINE_LEN);
+        s_line_count++;
+    }
+
+    // Update registry subtext with multi-line string
+    char full_msg[128] = {0};
+    int offset = 0;
+    for (int i = 0; i < s_line_count; i++) {
+        int written = snprintf(full_msg + offset, sizeof(full_msg) - offset, "%s\n", s_log_lines[i]);
+        if (written > 0) offset += written;
+    }
+    system_registry_set_subtext(full_msg);
+}
 
 static void display_refresh_task(void *pvParameters) {
     system_status_registry_t snap;
@@ -52,6 +88,10 @@ static void display_refresh_task(void *pvParameters) {
                 ui_draw_header(g_fb, snap.wifi_level, snap.mqtt_connected, snap.edge_node_connected);
                 ui_draw_footer(g_fb, snap.uptime_sec);
                 ui_draw_configuring_view(g_fb, snap.sub_status);
+                break;
+
+            case SYSTEM_STATE_TESTING:
+                ui_draw_test_view(g_fb, snap.sub_status);
                 break;
 
             case SYSTEM_STATE_ERROR:
@@ -97,10 +137,10 @@ esp_err_t display_service_init(void) {
         ESP_LOGE(TAG, "SSD1306 clear failed: %s", esp_err_to_name(err));
     }
 
-    xTaskCreate(display_refresh_task, "disp_refresh", 4096, NULL, 5, &g_refresh_task_handle);
+    xTaskCreate(display_refresh_task, "disp_refresh", 4096, NULL, 10, &g_refresh_task_handle);
 
     g_is_initialized = true;
-    ESP_LOGI(TAG, "Display Service (Layered) initialized");
+    ESP_LOGI(TAG, "Display Service (Layered) initialized with priority 10");
     return ESP_OK;
 }
 

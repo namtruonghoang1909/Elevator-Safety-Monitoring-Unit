@@ -119,3 +119,60 @@ void system_registry_get_snapshot(system_status_registry_t *out) {
         UNLOCK_REG();
     }
 }
+
+void system_registry_update_from_protocol_health(const ele_health_t *pkt) {
+    if (!pkt) return;
+    if (LOCK_REG()) {
+        // Store raw values
+        g_registry.raw_avg_tilt = pkt->avg_tilt;
+        g_registry.raw_max_tilt = pkt->max_tilt;
+        g_registry.raw_balance = pkt->balance;
+        g_registry.raw_health_score = pkt->health_score;
+
+        // 1. Map Balance
+        switch (pkt->balance) {
+            case BALANCE_STATE_LEVEL: strncpy(g_registry.balance_state, "STABLE", 15); break;
+            case BALANCE_STATE_TILT_LEFT: strncpy(g_registry.balance_state, "TILT LEFT", 15); break;
+            case BALANCE_STATE_TILT_RIGHT: strncpy(g_registry.balance_state, "TILT RIGHT", 15); break;
+            case BALANCE_STATE_TILT_FORWARD: strncpy(g_registry.balance_state, "TILT FWD", 15); break;
+            case BALANCE_STATE_TILT_BACKWARD: strncpy(g_registry.balance_state, "TILT BWD", 15); break;
+            default: strncpy(g_registry.balance_state, "UNKNOWN", 15); break;
+        }
+
+        // 2. Map Health Score
+        if (pkt->health_score > 90) strncpy(g_registry.elevator_health, "GOOD", 15);
+        else if (pkt->health_score > 60) strncpy(g_registry.elevator_health, "SICK", 15);
+        else strncpy(g_registry.elevator_health, "CRITICAL", 15);
+
+        UNLOCK_REG();
+    }
+}
+
+void system_registry_update_from_protocol_heartbeat(const edge_heartbeat_t *pkt) {
+    if (!pkt) return;
+    if (LOCK_REG()) {
+        // Store raw values
+        g_registry.raw_edge_health = pkt->edge_health;
+        g_registry.raw_edge_state = pkt->edge_state;
+        g_registry.raw_edge_uptime = pkt->uptime_sec;
+
+        g_registry.edge_node_connected = (pkt->edge_state == EDGE_STATE_RUNNING || pkt->edge_state == EDGE_STATE_INIT);
+        
+        if (pkt->edge_state == EDGE_STATE_ERROR) {
+             strncpy(g_registry.sub_status, "EDGE NODE ERROR", 31);
+        }
+        UNLOCK_REG();
+    }
+}
+
+void system_registry_update_from_protocol_emergency(const ele_emergency_t *pkt) {
+    if (!pkt) return;
+    if (LOCK_REG()) {
+        g_registry.last_fault_code = pkt->fault_code;
+        g_registry.last_fault_severity = pkt->severity;
+        g_registry.last_fault_value = pkt->fault_value;
+        g_registry.fault_active = true;
+        g_registry.current_state = SYSTEM_STATE_ERROR;
+        UNLOCK_REG();
+    }
+}

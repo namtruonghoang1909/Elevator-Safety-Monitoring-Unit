@@ -15,6 +15,7 @@ typedef enum system_state_id_t {
     SYSTEM_STATE_INITIALIZING,  /**< Hardware discovery and self-test */
     SYSTEM_STATE_CONFIGURING,   /**< Web portal active for credentials */
     SYSTEM_STATE_MONITORING,    /**< Normal production operation */
+    SYSTEM_STATE_TESTING,       /**< Running unit/integration tests */
     SYSTEM_STATE_ERROR          /**< Critical failure / Fail-Safe mode */
 } system_state_id_t;
 
