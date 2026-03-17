@@ -49,7 +49,19 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 
 ---
 
-## IV. System Layer
+## IV. Communication & Distributed System
+*Inter-processor communication and shared protocols.*
+
+- **Shared Protocol**
+  - [x] Implementation: `protocol_types.h`, `protocol_packets.h`, `esmu_protocol.h`.
+  - [x] Verification: Struct alignment and size checks via Unity on ESP32. [COMPLETE]
+- **CAN Platform (ESP32 Gateway)**
+  - [x] Implementation: Thread-safe TWAI abstraction layer.
+  - [x] Verification: Internal loopback testing (GPIO Matrix). [COMPLETE]
+
+---
+
+## V. System Layer
 *Global orchestration and state management.*
 
 - **System Controller**

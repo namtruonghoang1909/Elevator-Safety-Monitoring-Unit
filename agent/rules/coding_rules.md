@@ -4,6 +4,20 @@
 - Header files in `include/` subdirectory within each component
 - Implementation files in component root
 - Codes should be separated into files for better understanding and reviewing.
+- Source file's variables, functions should be organized like this:
+// ─────────────────────────────────────────────
+// Private variables, macros
+// ─────────────────────────────────────────────
+....
+// ─────────────────────────────────────────────
+// Private helpers declarations or definitions
+// ─────────────────────────────────────────────
+static function declarations or definition ....
+
+// ─────────────────────────────────────────────
+// Global function declarations or definitions
+// ─────────────────────────────────────────────
+function declarations or definitions ....
 
 ### Naming Conventions
 - For global APIs: `component_action` (e.g., `ssd1306_init`, `mpu6050_read_accel`)

@@ -91,19 +91,30 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - **WiFi Icon**: Reverted to classic vertical bars for maximum readability while maintaining the "Wi-Fi:" label in Config Mode.
 - **Persistence**: Integrated with `nvs_storage` to ensure credentials survive power cycles.
 
+### 11. CAN Platform & Inter-MCU Communication (March 2026)
+- **Component**: `components/platform/can_platform`.
+- **Abstraction**: Implemented a thread-safe CAN (TWAI) abstraction layer supporting Normal, No-ACK, and Loopback modes.
+- **Self-Test Solution**: Implemented "Software Loopback" using the ESP32 GPIO Matrix (`esp_rom_gpio_connect_in_signal`) to route TX signal internally to RX input. This enables verification without external transceivers or wiring.
+- **Verification**: Successfully transmitted and received 11-bit CAN frames at 500kbps on GPIO 12/13. Verified data integrity and hardware alert monitoring (TX Success/Bus Errors).
+- **Robustness**: 
+    - Fixed `message.self` flag for loopback support.
+    - Added `can_get_status` for field diagnostics.
+    - Implemented zero-initialization of TWAI message structures to prevent garbage data.
+
 ---
 
 ## Current Project State
-- **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306.
+- **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306, can_platform (ESP32).
 - **Connectivity Layer**: [COMPLETE] wifi_manager, mqtt_manager, connectivity_manager, web_server.
 - **Service Layer**: 
     - Motion Monitor: [COMPLETE]
     - Display Service: [COMPLETE]
     - Fault Detector: [PENDING]
-- **System Layer**:
-    - System Controller: [PARTIAL]
+- **Distributed System**:
+    - Shared Protocol: [IN PROGRESS] Defined `shared/protocol/*.h`.
+    - CAN Communication: [VERIFIED] ESP32 side confirmed.
 
 ## Next Session Focus
 - Implement the **Fault Detector** service to analyze motion metrics for anomalies.
-- Define the **CAN Communication** protocol for distributed processing between ESP32 and STM32.
-- Transition `motion_monitor` to the STM32 edge node.
+- Transition `motion_monitor` and `fault_detector` logic to the **STM32 Edge Node**.
+- Verify shared protocol struct alignment between ESP32 (XTENSA) and STM32 (ARM Cortex-M).

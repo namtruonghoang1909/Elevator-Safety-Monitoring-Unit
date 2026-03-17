@@ -15,6 +15,9 @@ Establish communication between ESP32 (Gateway) and STM32 (Edge) and move safety
     - [x] UI "CONFIG MODE" display view.
 
 ## Pending (Next Phase)
+- [x] **CAN Platform Verification**: 
+    - [x] Fix loopback mode bug in `can_platform.c`.
+    - [x] Modify `main.c` to run a loopback test (transmit and receive).
 - [ ] **Protocol Definition**: Create `shared/protocol/esmu_protocol.h` for CAN/UART data structures.
 - [ ] **STM32 Porting**: Move MPU6050 driver and `motion_monitor` logic to `edge-stm32`.
 - [ ] **Fault Detector**: Implement the core anomaly detection logic on the STM32.

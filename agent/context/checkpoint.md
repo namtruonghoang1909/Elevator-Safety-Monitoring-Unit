@@ -1,15 +1,20 @@
-# Session Checkpoint - March 12, 2026 (Night)
+# Session Checkpoint - March 17, 2026 (Morning)
 
 ## Current Working Context
-- **WiFi Provisioning System (COMPLETE)**: Robust portal with URL decoding and multi-mode switching.
-- **Hardware Integration (COMPLETE)**: GPIO 15 toggle (5s hold) and GPIO 4 status LED.
-- **UI & Graphics (COMPLETE)**: Custom cloud bitmaps and "Wi-Fi: ESMU-Setup" display layout.
-- **System Controller (COMPLETE)**: Event-driven state management for configuration transitions.
+- **Shared Protocol (VERIFIED)**: Completed `shared/can_protocol/` definition and verified struct packing (all 8 bytes) via `test_protocol` on ESP32.
+- **Gateway Node (READY)**: `main.c` is cleaned up and relies on the `system_start()` orchestration. The `motion_proxy` and `system_registry` are updated to use the unified protocol structures (`ele_health_t`, `ele_emergency_t`, `edge_heartbeat_t`).
+- **CAN Platform (ESP32)**: Verified and ready for real traffic.
 
 ## Project State
-- **Connectivity Layer**: [COMPLETE] wifi_manager, mqtt_manager, connectivity_manager, web_server.
-- **Display Service**: [COMPLETE] Support for Monitoring, Configuring, and Initializing views with custom icons.
+- **Connectivity Layer**: [COMPLETE]
+- **Display Service**: [COMPLETE]
+- **Communication & Distributed System**: [IN PROGRESS] 
+    - Shared Protocol: [COMPLETE & VERIFIED].
+    - ESP32 CAN Platform: [COMPLETE & VERIFIED].
+    - STM32 Edge Node: [NEXT PHASE].
 
 ## Next Recommended Steps
-1. **STM32 Migration**: Begin porting drivers to the Edge node to prepare for the Distributed System phase.
-2. **CAN Bus Implementation**: Establish inter-processor communication.
+1. **STM32 Project Setup**: Verify the STM32CubeIDE project structure and build system (`edge-stm32`).
+2. **STM32 CAN Platform**: Implement the `can_platform` abstraction for STM32 using HAL.
+3. **MPU6050 Driver Porting**: Port the existing ESP32 MPU6050 driver to STM32 (adjusting I2C calls to HAL).
+4. **Motion Monitor Migration**: Move the motion detection logic to the STM32.
