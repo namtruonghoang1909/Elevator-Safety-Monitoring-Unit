@@ -1,0 +1,18 @@
+/**
+ * @file esmu_protocol.h
+ * @brief Unified ESMU Distributed Protocol Definition
+ * 
+ * This file acts as the main entry point for the protocol definition.
+ * It includes the type and packet definitions and defines the CAN IDs.
+ */
+
+#pragma once
+
+#include "protocol_packets.h"
+
+// ─────────────────────────────────────────────
+// CAN IDs (Lower ID = Higher Priority)
+// ─────────────────────────────────────────────
+#define CAN_ID_ELE_EMERGENCY    0x010   /**< Critical fault/emergency alert (Priority 1) */
+#define CAN_ID_ELE_HEALTH       0x100   /**< Real-time motion/balance data (Priority 2) */
+#define CAN_ID_EDGE_HEALTH      0x200   /**< Edge node health and heartbeat (Priority 3) */
