@@ -15,4 +15,5 @@ void ui_draw_calibrating_view(uint8_t *fb, const char *subtext);
 void ui_draw_monitoring_view(uint8_t *fb, const char *motion, const char *balance, const char *health);
 void ui_draw_configuring_view(uint8_t *fb, const char *subtext);
 void ui_draw_error_view(uint8_t *fb, const char *msg);
+void ui_draw_test_view(uint8_t *fb, const char *msg);
 void ui_draw_fail_safe_view(uint8_t *fb, const char *subtext);

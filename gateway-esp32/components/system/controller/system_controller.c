@@ -12,7 +12,9 @@
 
 #include "display_service.h"
 #include "connectivity_manager.h"
-#include "motion_monitor.h"
+#include "motion_proxy.h"
+#include "telemetry_service.h"
+#include "can_platform.h"
 #include "i2c_platform.h"
 #include "nvs_flash.h"
 
@@ -80,20 +82,39 @@ static esp_err_t system_init()
         return ret;
     }
 
-    // 8. Motion monitor init (Remote Sink Mode)
-    system_registry_set_subtext("Waiting for Edge Node...");
-    motion_monitor_config_t mm_cfg = {
-        .stats_update_ms = 1000
+    // 4. CAN Platform Init
+    system_registry_set_subtext("CAN Bus Init...");
+    can_config_t can_cfg = {
+        .tx_pin = CAN_TX_PIN,
+        .rx_pin = CAN_RX_PIN,
+        .baud_rate_kbps = CAN_BAUD_RATE_KBPS,
+        .mode = CAN_MODE_NORMAL // Default to normal for production
     };
-    ret = motion_monitor_init(&mm_cfg);
+    ret = can_init(&can_cfg);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Motion monitor init failed: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "CAN init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    can_start();
+
+    // 5. Motion Proxy (Remote Sink Mode)
+    system_registry_set_subtext("Waiting for Edge Node...");
+    ret = motion_proxy_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Motion proxy init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    // 6. Telemetry Service
+    ret = telemetry_service_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Telemetry service init failed: %s", esp_err_to_name(ret));
         return ret;
     }
     
     vTaskDelay(pdMS_TO_TICKS(1500));
 
-    // 9. Monitoring Phase
+    // 6. Monitoring Phase
     system_registry_set_subtext("Gateway Active");
     system_report_event(SYSTEM_EVENT_INITIALIZED);
 

@@ -136,6 +136,25 @@ void ui_draw_error_view(uint8_t *fb, const char *msg) {
     if (msg) display_draw_string(fb, 10, 35, msg);
 }
 
+void ui_draw_test_view(uint8_t *fb, const char *msg) {
+    display_draw_string(fb, 0, 0, "--- TEST LOG ---");
+    display_draw_hline(fb, 0, 127, 9);
+    
+    if (msg) {
+        char buf[128];
+        strncpy(buf, msg, sizeof(buf)-1);
+        buf[sizeof(buf)-1] = '\0';
+        
+        char *line = strtok(buf, "\n");
+        int y = 12;
+        while (line != NULL && y < 53) {
+            display_draw_string(fb, 0, y, line);
+            y += 10;
+            line = strtok(NULL, "\n");
+        }
+    }
+}
+
 void ui_draw_fail_safe_view(uint8_t *fb, const char *subtext) {
     display_draw_string_large(fb, 30, 20, "HALTED");
     if (subtext) display_draw_string(fb, 10, 45, subtext);

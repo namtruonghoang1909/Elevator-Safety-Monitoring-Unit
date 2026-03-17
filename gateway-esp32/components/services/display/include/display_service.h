@@ -23,3 +23,9 @@ esp_err_t display_service_init(void);
  * @return ESP_OK on success
  */
 esp_err_t display_service_deinit(void);
+
+/**
+ * @brief Log a message to the display (only visible in TESTING or specific views)
+ */
+void display_service_log(const char *fmt, ...);
+
