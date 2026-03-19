@@ -6,10 +6,9 @@
 #include <string.h>
 #include "esp_log.h"
 #include "task.h"
-#include "can_platform.h"
+#include "can_bsp.h"
 #include "system_registry.h"
 #include "esmu_protocol.h"
-#include "telemetry_service.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -29,7 +28,7 @@ static void can_listener_task(void *pvParameters) {
 
     while (1) {
         // Block until a CAN message arrives
-        esp_err_t err = can_receive(&id, data, &len, portMAX_DELAY);
+        esp_err_t err = can_bsp_receive(&id, data, &len, portMAX_DELAY);
 
         if (err == ESP_OK && len == 8) {
             xSemaphoreTake(s_ctx.lock, portMAX_DELAY);
@@ -38,22 +37,38 @@ static void can_listener_task(void *pvParameters) {
                 case CAN_ID_ELE_HEALTH: {
                     ele_health_t pkt;
                     memcpy(&pkt, data, 8);
+                    ESP_LOGI(TAG, "HEALTH: Tilt Avg %d Max %d Score %d", pkt.avg_tilt, pkt.max_tilt, pkt.health_score);
                     system_registry_update_from_protocol_health(&pkt);
                     break;
                 }
                 case CAN_ID_ELE_EMERGENCY: {
                     ele_emergency_t pkt;
                     memcpy(&pkt, data, 8);
+                    ESP_LOGW(TAG, "!! EMERGENCY RECEIVED !! Fault Code: %d Severity: %d", pkt.fault_code, pkt.severity);
                     system_registry_update_from_protocol_emergency(&pkt);
-                    system_registry_set_subtext("FAULT DETECTED ON EDGE");
-                    telemetry_service_force_publish();
+                    // system_registry_set_subtext("FAULT DETECTED ON EDGE");
                     break;
                 }
                 case CAN_ID_EDGE_HEALTH: {
                     edge_heartbeat_t hb;
                     memcpy(&hb, data, 8);
                     s_ctx.last_heartbeat_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
+                    ESP_LOGI(TAG, "HEARTBEAT: State %d Uptime %lu sec", hb.edge_state, hb.uptime_sec);
                     system_registry_update_from_protocol_heartbeat(&hb);
+                    break;
+                }
+                case CAN_ID_TEST_SIGNAL: {
+                    test_packet_t pkt;
+                    memcpy(&pkt, data, sizeof(pkt));
+                    
+                    if (pkt.magic_byte == 0xA5) {
+                        char buf[32];
+                        snprintf(buf, sizeof(buf), "UPTIME: %lu", pkt.uptime);
+                        system_registry_set_subtext(buf);
+                        ESP_LOGI(TAG, "CAN Signal Received - Uptime: %lu", pkt.uptime);
+                    } else {
+                        ESP_LOGW(TAG, "CAN Signal Received but Magic Byte Mismatch: 0x%02X", pkt.magic_byte);
+                    }
                     break;
                 }
                 default:
