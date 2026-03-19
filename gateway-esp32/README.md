@@ -15,10 +15,10 @@ The project follows a layered service-oriented architecture:
 - **[System Controller](components/system/README.md)**: Centralized FSM and event dispatching.
 - **System Registry**: Thread-safe "Whiteboard" for cross-service telemetry.
 
-### 3. Drivers & Platform
+### 3. Drivers & BSP
 - **[MPU6050](components/drivers/mpu6050/README.md)**: Robust 6-axis IMU driver with auto-recovery logic.
 - **[SSD1306](components/drivers/ssd1306/README.md)**: Optimized OLED display driver.
-- **[I2C Platform](components/platform/i2c_platform/README.md)**: Thread-safe multi-bus I2C abstraction.
+- **[I2C BSP](components/bsp/i2c_bsp/README.md)**: Thread-safe multi-bus I2C abstraction.
 
 ## 🚀 Getting Started
 

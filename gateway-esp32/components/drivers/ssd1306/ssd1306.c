@@ -13,7 +13,7 @@ static const char *TAG = "SSD1306";
 static esp_err_t ssd1306_send_command(uint8_t dev_id, uint8_t cmd)
 {
     uint8_t buf[2] = {0x00, cmd};  // Co=0, D/C#=0 → command mode
-    return i2c_write_bytes(dev_id, buf, 2);
+    return i2c_bsp_write_bytes(dev_id, buf, 2);
 }
 
 static esp_err_t ssd1306_send_commands(uint8_t dev_id, const uint8_t *cmds, size_t len)
@@ -23,7 +23,7 @@ static esp_err_t ssd1306_send_commands(uint8_t dev_id, const uint8_t *cmds, size
     for (size_t i = 0; i < len; i++) {
         buf[i + 1] = cmds[i];
     }
-    return i2c_write_bytes(dev_id, buf, len + 1);
+    return i2c_bsp_write_bytes(dev_id, buf, len + 1);
 }
 
 // ─────────────────────────────────────────────
@@ -40,7 +40,7 @@ esp_err_t ssd1306_init(const ssd1306_config_t *cfg, uint8_t *dev_id_out)
     *dev_id_out = 255;  // invalid marker
 
     // Register device on the bus
-    esp_err_t ret = i2c_add_device(dev_id_out,
+    esp_err_t ret = i2c_bsp_add_device(dev_id_out,
                                    cfg->address,
                                    cfg->name ? cfg->name : "SSD1306",
                                    cfg->scl_speed_hz,
@@ -83,7 +83,7 @@ esp_err_t ssd1306_init(const ssd1306_config_t *cfg, uint8_t *dev_id_out)
     ret = ssd1306_send_commands(*dev_id_out, init_sequence, sizeof(init_sequence));
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Init sequence failed: %s", esp_err_to_name(ret));
-        i2c_remove_device(*dev_id_out);
+        i2c_bsp_remove_device(*dev_id_out);
         *dev_id_out = 255;
         return ret;
     }
@@ -92,7 +92,7 @@ esp_err_t ssd1306_init(const ssd1306_config_t *cfg, uint8_t *dev_id_out)
     ret = ssd1306_clear(*dev_id_out);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Clear failed after init: %s", esp_err_to_name(ret));
-        i2c_remove_device(*dev_id_out);
+        i2c_bsp_remove_device(*dev_id_out);
         *dev_id_out = 255;
         return ret;
     }
@@ -104,7 +104,7 @@ esp_err_t ssd1306_init(const ssd1306_config_t *cfg, uint8_t *dev_id_out)
 esp_err_t ssd1306_deinit(uint8_t dev_id)
 {
     ESP_LOGI(TAG, "Deinitializing SSD1306 (dev_id=%d)", dev_id);
-    return i2c_remove_device(dev_id);
+    return i2c_bsp_remove_device(dev_id);
 }
 
 // ─────────────────────────────────────────────
@@ -221,7 +221,7 @@ esp_err_t ssd1306_write_data(uint8_t dev_id, const uint8_t *data, size_t len)
         buf[i + 1] = data[i];
     }
 
-    esp_err_t ret = i2c_write_bytes(dev_id, buf, len + 1);
+    esp_err_t ret = i2c_bsp_write_bytes(dev_id, buf, len + 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write %u data bytes: %s", (unsigned)len, esp_err_to_name(ret));
         return ret;
