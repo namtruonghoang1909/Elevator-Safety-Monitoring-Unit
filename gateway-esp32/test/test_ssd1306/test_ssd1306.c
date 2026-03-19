@@ -7,7 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
-#include "i2c_platform.h"
+#include "i2c_bsp.h"
 #include "ssd1306.h"
 
 static const char *TAG = "TEST_SSD1306";
@@ -42,7 +42,7 @@ static void wait_for_user(const char *message) {
 
 void setUp(void) {
     if (bus_id == 0xFF) {
-        TEST_ASSERT_EQUAL(ESP_OK, i2c_bus_init(&bus_id, (gpio_num_t)SDA_PIN, (gpio_num_t)SCL_PIN));
+        TEST_ASSERT_EQUAL(ESP_OK, i2c_bsp_bus_init(&bus_id, (gpio_num_t)SDA_PIN, (gpio_num_t)SCL_PIN));
         gpio_config_t io_conf = {
             .pin_bit_mask = (1ULL << TEST_LED_PIN),
             .mode = GPIO_MODE_OUTPUT,

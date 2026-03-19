@@ -13,10 +13,10 @@ idf_component_register(
         esp_system
         can_protocol
     PRIV_REQUIRES 
-        i2c_platform
+        i2c_bsp
         display
         connectivity_manager
         motion_proxy
         telemetry
-        can_platform
+        can_bsp
 )

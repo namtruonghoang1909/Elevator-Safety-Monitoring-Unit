@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.16.0)
 list(APPEND EXTRA_COMPONENT_DIRS 
     "${CMAKE_CURRENT_SOURCE_DIR}/components/system"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/drivers/ssd1306"
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/platform/i2c_platform"
-    "${CMAKE_CURRENT_SOURCE_DIR}/components/platform/can_platform"
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/bsp/i2c_bsp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/components/bsp/can_bsp"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/services/display"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/services/motion_proxy"
     "${CMAKE_CURRENT_SOURCE_DIR}/components/services/communication/telemetry"
