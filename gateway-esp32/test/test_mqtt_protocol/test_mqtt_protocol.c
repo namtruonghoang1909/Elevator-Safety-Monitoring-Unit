@@ -6,7 +6,7 @@
 #include "esmu_protocol.h"
 #include "display_service.h"
 #include "system_registry.h"
-#include "i2c_platform.h"
+#include "i2c_bsp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
@@ -22,7 +22,7 @@ void setUp(void) {
 
     // 1. Initialize I2C Bus (SSD1306 needs it)
     uint8_t bus_id = 0; // display_service expects bus 0
-    TEST_ASSERT_EQUAL(ESP_OK, i2c_bus_init(&bus_id, (gpio_num_t)I2C_SDA_PIN, (gpio_num_t)I2C_SCL_PIN));
+    TEST_ASSERT_EQUAL(ESP_OK, i2c_bsp_bus_init(&bus_id, (gpio_num_t)I2C_SDA_PIN, (gpio_num_t)I2C_SCL_PIN));
 
     // 2. Initialize Status Registry and Display
     TEST_ASSERT_EQUAL(ESP_OK, system_registry_init());

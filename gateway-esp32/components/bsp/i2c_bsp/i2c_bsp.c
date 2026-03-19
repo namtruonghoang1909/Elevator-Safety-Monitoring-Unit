@@ -1,12 +1,11 @@
-#include "i2c_platform.h"
+#include "i2c_bsp.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"   // for pdMS_TO_TICKS
 
 #define INVALID_ID_MARKER   255
 
-// Changed TAG to "i2c_bus" for clarity (was "i2c_hal")
-static const char *TAG = "i2c_bus";
+static const char *TAG = "i2c_bsp";
 
 static i2c_bus_info_t    bus[MAX_I2C_BUS_NUM]    = {{0}};
 static i2c_device_info_t device[MAX_DEVICES_NUM] = {{0}};
@@ -15,11 +14,7 @@ static i2c_device_info_t device[MAX_DEVICES_NUM] = {{0}};
 // Bus & Device Management
 // ─────────────────────────────────────────────
 
-/**
- * @brief Initialize an I2C master bus and assign/return its ID
- *        (Changed function name from i2c_hal_init to i2c_bus_init for clarity)
- */
-esp_err_t i2c_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_pin)
+esp_err_t i2c_bsp_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_pin)
 {
     if (bus_id_out == NULL) {
         ESP_LOGE(TAG, "bus_id_out pointer cannot be NULL");
@@ -29,7 +24,6 @@ esp_err_t i2c_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_p
     uint8_t requested = *bus_id_out;
     uint8_t assigned  = INVALID_ID_MARKER;
 
-    // Auto-assign if caller passed invalid/marker value
     if (requested >= MAX_I2C_BUS_NUM) {
         for (uint8_t i = 0; i < MAX_I2C_BUS_NUM; i++) {
             if (bus[i].bus_handle == NULL) {
@@ -43,13 +37,8 @@ esp_err_t i2c_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_p
         }
     } else {
         assigned = requested;
-        if (assigned >= MAX_I2C_BUS_NUM) {
-            ESP_LOGE(TAG, "Requested bus_id %d is out of range", requested);
-            return ESP_ERR_INVALID_ARG;
-        }
     }
 
-    // Already initialized? → reuse (idempotent)  // Improved warning message
     if (bus[assigned].bus_handle != NULL) {
         ESP_LOGW(TAG, "I2C bus %d already initialized → reusing", assigned);
         *bus_id_out = assigned;
@@ -74,7 +63,6 @@ esp_err_t i2c_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_p
         return ret;
     }
 
-    // Improved log with pin numbers
     ESP_LOGI(TAG, "I2C bus %d initialized: SDA=%d, SCL=%d",
              assigned, sda_pin, scl_pin);
 
@@ -82,11 +70,7 @@ esp_err_t i2c_bus_init(uint8_t *bus_id_out, gpio_num_t sda_pin, gpio_num_t scl_p
     return ESP_OK;
 }
 
-/**
- * @brief Scan the I2C bus for connected slave devices using probe
- *        (Added temporary log level suppression for NACK spam - common improvement)
- */
-esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_t *found_count)
+esp_err_t i2c_bsp_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_t *found_count)
 {
     if (bus_id >= MAX_I2C_BUS_NUM || bus[bus_id].bus_handle == NULL) {
         ESP_LOGE(TAG, "Invalid or uninitialized bus ID: %d", bus_id);
@@ -100,7 +84,6 @@ esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_
 
     *found_count = 0;
     ESP_LOGI(TAG, "Scanning I2C bus %d (0x08–0x77)...", bus_id);
-
 
     for (uint8_t addr = 0x08; addr <= 0x77; addr++) {
         esp_err_t ret = i2c_master_probe(bus[bus_id].bus_handle,
@@ -116,7 +99,6 @@ esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_
         }
     }
 
-
     if (*found_count == 0) {
         ESP_LOGW(TAG, "No I2C devices detected on bus %d", bus_id);
     } else {
@@ -126,15 +108,11 @@ esp_err_t i2c_scan(uint8_t bus_id, uint8_t *addr_list, size_t max_results, size_
     return ESP_OK;
 }
 
-/**
- * @brief Add a slave device to a bus and assign a unique device ID
- *        (Improved error messages and partial cleanup on failure)
- */
-esp_err_t i2c_add_device(uint8_t *dev_id_out,
-                         uint8_t dev_addr,
-                         const char *dev_name,
-                         uint32_t scl_speed_hz,
-                         uint8_t on_bus_id)
+esp_err_t i2c_bsp_add_device(uint8_t *dev_id_out,
+                             uint8_t dev_addr,
+                             const char *dev_name,
+                             uint32_t scl_speed_hz,
+                             uint8_t on_bus_id)
 {
     if (dev_id_out == NULL) {
         ESP_LOGE(TAG, "dev_id_out pointer cannot be NULL");
@@ -148,7 +126,6 @@ esp_err_t i2c_add_device(uint8_t *dev_id_out,
         return ESP_ERR_INVALID_STATE;
     }
 
-    // Find free slot
     uint8_t assigned = INVALID_ID_MARKER;
     for (uint8_t i = 0; i < MAX_DEVICES_NUM; i++) {
         if (device[i].dev_handle == NULL) {
@@ -179,10 +156,7 @@ esp_err_t i2c_add_device(uint8_t *dev_id_out,
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to add device @ 0x%02X on bus %d: %s",
                  dev_addr, on_bus_id, esp_err_to_name(ret));
-        // Clean partial state on failure
         device[assigned].dev_handle = NULL;
-        device[assigned].address    = 0;
-        device[assigned].name       = NULL;
         return ret;
     }
 
@@ -193,14 +167,7 @@ esp_err_t i2c_add_device(uint8_t *dev_id_out,
     return ESP_OK;
 }
 
-// ─────────────────────────────────────────────
-// Register-level Operations
-// ─────────────────────────────────────────────
-/**
- * @brief Write a single byte to a register on a device
- *        (Added register & value to error log for better debugging)
- */
-esp_err_t i2c_write_reg(uint8_t dev_id, uint8_t reg, uint8_t val)
+esp_err_t i2c_bsp_write_reg(uint8_t dev_id, uint8_t reg, uint8_t val)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
         ESP_LOGE(TAG, "Device %d not initialized", dev_id);
@@ -220,11 +187,7 @@ esp_err_t i2c_write_reg(uint8_t dev_id, uint8_t reg, uint8_t val)
     return ret;
 }
 
-/**
- * @brief Read a single byte from a register on a device
- *        (Added register to error log)
- */
-esp_err_t i2c_read_reg(uint8_t dev_id, uint8_t reg, uint8_t *val)
+esp_err_t i2c_bsp_read_reg(uint8_t dev_id, uint8_t reg, uint8_t *val)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL || val == NULL) {
         ESP_LOGE(TAG, "Invalid params for read on dev %d", dev_id);
@@ -244,13 +207,9 @@ esp_err_t i2c_read_reg(uint8_t dev_id, uint8_t reg, uint8_t *val)
     return ret;
 }
 
-/**
- * @brief Read multiple consecutive registers (burst read)
- *        (Improved error log with start reg & length)
- */
-esp_err_t i2c_read_consecutive_regs(uint8_t dev_id,
-                                    const uint8_t start_reg,
-                                    uint8_t *data_buf, size_t buf_len)
+esp_err_t i2c_bsp_read_consecutive_regs(uint8_t dev_id,
+                                        const uint8_t start_reg,
+                                        uint8_t *data_buf, size_t buf_len)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
         ESP_LOGE(TAG, "Device %d not initialized", dev_id);
@@ -274,10 +233,7 @@ esp_err_t i2c_read_consecutive_regs(uint8_t dev_id,
     return ret;
 }
 
-/**
- * @brief Deinitialize (delete) a specific I2C bus
- */
-esp_err_t i2c_deinit_bus(uint8_t bus_id)
+esp_err_t i2c_bsp_deinit_bus(uint8_t bus_id)
 {
     if (bus_id >= MAX_I2C_BUS_NUM || bus[bus_id].bus_handle == NULL) {
         return ESP_OK;
@@ -294,10 +250,7 @@ esp_err_t i2c_deinit_bus(uint8_t bus_id)
     return ret;
 }
 
-/**
- * @brief Remove a device from its bus (free resources)
- */
-esp_err_t i2c_remove_device(uint8_t dev_id)
+esp_err_t i2c_bsp_remove_device(uint8_t dev_id)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
         return ESP_OK;
@@ -314,10 +267,7 @@ esp_err_t i2c_remove_device(uint8_t dev_id)
     return ret;
 }
 
-// ─────────────────────────────────────────────
-// Low-level Byte / Bytes Operations
-// ─────────────────────────────────────────────
-esp_err_t i2c_write_byte(uint8_t dev_id, uint8_t value)
+esp_err_t i2c_bsp_write_byte(uint8_t dev_id, uint8_t value)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
         ESP_LOGE(TAG, "Device %d not initialized", dev_id);
@@ -336,7 +286,7 @@ esp_err_t i2c_write_byte(uint8_t dev_id, uint8_t value)
     return ret;
 }
 
-esp_err_t i2c_write_bytes(uint8_t dev_id, const uint8_t *data, size_t len)
+esp_err_t i2c_bsp_write_bytes(uint8_t dev_id, const uint8_t *data, size_t len)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL) {
         ESP_LOGE(TAG, "Device %d not initialized", dev_id);
@@ -359,7 +309,7 @@ esp_err_t i2c_write_bytes(uint8_t dev_id, const uint8_t *data, size_t len)
     return ret;
 }
 
-esp_err_t i2c_read_byte(uint8_t dev_id, uint8_t *out_val)
+esp_err_t i2c_bsp_read_byte(uint8_t dev_id, uint8_t *out_val)
 {
     if (dev_id >= MAX_DEVICES_NUM || device[dev_id].dev_handle == NULL || out_val == NULL) {
         ESP_LOGE(TAG, "Invalid params for read_byte on dev %d", dev_id);
@@ -367,7 +317,7 @@ esp_err_t i2c_read_byte(uint8_t dev_id, uint8_t *out_val)
     }
 
     esp_err_t ret = i2c_master_transmit_receive(device[dev_id].dev_handle,
-                                                NULL, 0,           // no write
+                                                NULL, 0,
                                                 out_val, 1,
                                                 pdMS_TO_TICKS(I2C_TIMEOUT_MS));
 
@@ -379,11 +329,10 @@ esp_err_t i2c_read_byte(uint8_t dev_id, uint8_t *out_val)
     return ret;
 }
 
-esp_err_t i2c_read_bytes(uint8_t dev_id,
-                         uint8_t start_reg,
-                         uint8_t *buf,
-                         size_t len)
+esp_err_t i2c_bsp_read_bytes(uint8_t dev_id,
+                             uint8_t start_reg,
+                             uint8_t *buf,
+                             size_t len)
 {
-    // Reuse existing burst read implementation (same behavior)
-    return i2c_read_consecutive_regs(dev_id, start_reg, buf, len);
+    return i2c_bsp_read_consecutive_regs(dev_id, start_reg, buf, len);
 }

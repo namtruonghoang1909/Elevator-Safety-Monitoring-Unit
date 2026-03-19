@@ -22,7 +22,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bsp_i2c.h"
+#include "bsp_can.h"
+#include "esmu_protocol.h"
+#include "edge_logger.h"
+#include "freeRTOS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +51,7 @@ I2C_HandleTypeDef hi2c1;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-
+uint8_t address = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,6 +103,17 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
+  // 1. Initialize BSPs
+  bsp_i2c_init();
+  bsp_can_init();
+
+  // 2. I2C Scanner
+  for (uint8_t i = 1; i < 128; i++) {
+      if (bsp_i2c_is_ready(i)) {
+          address = i;
+      }
+  }
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -119,7 +134,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 512);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
@@ -194,11 +209,11 @@ static void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 16;
+  hcan.Init.Prescaler = 1;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_12TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
   hcan.Init.AutoWakeUp = DISABLE;
@@ -283,10 +298,58 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
+  // Initialize Logger after scheduler is running
+  if (address != 0) {
+      edge_logger_init(address);
+  }
+
+  uint32_t last_hb_tick = 0;
+  uint32_t last_health_tick = 0;
+  uint32_t last_emergency_tick = 0;
+  uint32_t uptime = 0;
+
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    uint32_t now = osKernelSysTick();
+
+    // 1. Heartbeat @ 1Hz
+    if (now - last_hb_tick >= 1000) {
+        last_hb_tick = now;
+        edge_heartbeat_t hb = {
+            .edge_health = EDGE_HEALTH_OK,
+            .edge_state = EDGE_STATE_RUNNING,
+            .uptime_sec = uptime++
+        };
+        bsp_can_send(CAN_ID_EDGE_HEALTH, (uint8_t*)&hb, sizeof(hb));
+        edge_logger_printf("HB: State %d Up %lu", hb.edge_state, hb.uptime_sec);
+    }
+
+    // 2. Elevator Health @ 10Hz (100ms)
+    if (now - last_health_tick >= 100) {
+        last_health_tick = now;
+        ele_health_t health = {
+            .avg_tilt = 125, // 1.25 deg
+            .max_tilt = 310, // 3.1 deg
+            .balance = BALANCE_STATE_LEVEL,
+            .health_score = 99
+        };
+        bsp_can_send(CAN_ID_ELE_HEALTH, (uint8_t*)&health, sizeof(health));
+    }
+
+    // 3. Simulated Emergency @ 0.2Hz (Every 5s)
+    if (now - last_emergency_tick >= 5000) {
+        last_emergency_tick = now;
+        ele_emergency_t em = {
+            .fault_code = 0x01, // SHAKE_DETECTED
+            .severity = 2,      // High
+            .fault_value = 4500 // 4.5g impact
+        };
+        bsp_can_send(CAN_ID_ELE_EMERGENCY, (uint8_t*)&em, sizeof(em));
+        edge_logger_print("!! EMERGENCY SENT !!");
+    }
+
+    osDelay(10); // Small sleep to yield
   }
   /* USER CODE END 5 */
 }

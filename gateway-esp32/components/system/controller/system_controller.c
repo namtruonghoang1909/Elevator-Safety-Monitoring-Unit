@@ -14,8 +14,8 @@
 #include "connectivity_manager.h"
 #include "motion_proxy.h"
 #include "telemetry_service.h"
-#include "can_platform.h"
-#include "i2c_platform.h"
+#include "can_bsp.h"
+#include "i2c_bsp.h"
 #include "nvs_flash.h"
 
 static const char *TAG = "SYS_CTRL";
@@ -39,7 +39,7 @@ static esp_err_t system_init()
 {
     // 1. Platform Init (Needed for SSD1306)
     uint8_t bus_id;
-    esp_err_t ret = i2c_bus_init(&bus_id, 21, 22);
+    esp_err_t ret = i2c_bsp_bus_init(&bus_id, 21, 22);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "I2C bus init failed: %s", esp_err_to_name(ret));
         return ret;
@@ -84,18 +84,18 @@ static esp_err_t system_init()
 
     // 4. CAN Platform Init
     system_registry_set_subtext("CAN Bus Init...");
-    can_config_t can_cfg = {
+    can_bsp_config_t can_cfg = {
         .tx_pin = CAN_TX_PIN,
         .rx_pin = CAN_RX_PIN,
         .baud_rate_kbps = CAN_BAUD_RATE_KBPS,
         .mode = CAN_MODE_NORMAL // Default to normal for production
     };
-    ret = can_init(&can_cfg);
+    ret = can_bsp_init(&can_cfg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "CAN init failed: %s", esp_err_to_name(ret));
         return ret;
     }
-    can_start();
+    can_bsp_start();
 
     // 5. Motion Proxy (Remote Sink Mode)
     system_registry_set_subtext("Waiting for Edge Node...");

@@ -1,4 +1,4 @@
-set (srcs i2c_platform.c)
+set (srcs i2c_bsp.c)
 
 idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "include"

@@ -32,6 +32,16 @@ typedef struct __attribute__((packed)) {
 } ele_emergency_t;
 
 /**
+ * @brief Simple test packet for signal validation (CAN_ID_TEST_SIGNAL)
+ * 8 Bytes total
+ */
+typedef struct __attribute__((packed)) {
+    uint32_t uptime;             /**< Simple incrementing counter */
+    uint8_t  magic_byte;         /**< Should be 0xA5 to confirm alignment */
+    uint8_t  reserved[3];        /**< Padding */
+} test_packet_t;
+
+/**
  * @brief Edge node heartbeat and diagnostics (CAN_ID_EDGE_HEALTH)
  * 8 Bytes total
  */

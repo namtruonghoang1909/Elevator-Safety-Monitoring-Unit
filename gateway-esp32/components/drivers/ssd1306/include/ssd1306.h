@@ -2,7 +2,7 @@
  * @file ssd1306.h
  * @brief SSD1306 OLED display driver (128×64, I2C)
  *
- * Built on top of i2c_platform.
+ * Built on top of i2c_bsp.
  * Provides low-level display control and mid-level APIs for
  * higher-level code to build graphics on top.
  */
@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "esp_err.h"
-#include "i2c_platform.h"
+#include "i2c_bsp.h"
 
 // ─────────────────────────────────────────────
 // Display Constants

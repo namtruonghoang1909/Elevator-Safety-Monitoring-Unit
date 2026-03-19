@@ -1,74 +1,49 @@
-# ESMU Code Implementation Plan
+# CAN Bus Playground Test Plan (Direct in main.c)
+
+## Objective
+Verify CAN communication between STM32 and ESP32 by implementing simple transmission and reception logic directly in the `main.c` files of both nodes. This validates the hardware and BSP layers before building higher-level services.
 
 ---
 
-## 1. Display Service Implementation Plan (System State Registry)
-[STATUS: COMPLETE]
-- **Registry**: Thread-safe "Whiteboard" pattern in `system_registry.h/c`.
-- **Assets**: UI Components and Icons for SSD1306.
-- **Integration**: Services update the Registry; the UI refreshes at 15Hz.
+## 1. STM32 (Edge Node) - "The Transmitter"
+
+### Goal: Send dummy ESMU protocol packets directly from the default FreeRTOS task.
+
+- **Timing Configuration**:
+  - Update `MX_CAN_Init` in `main.c` for 500kbps (Prescaler: 1, BS1: 12, BS2: 3).
+- **Initialization**:
+  - Include `bsp_can.h` and `esmu_protocol.h`.
+  - Call `bsp_can_init()` in `main()` before `osKernelStart()`.
+- **Test Logic (in `StartDefaultTask`)**:
+  - Every 1000ms: Send `edge_heartbeat_t` (ID 0x200).
+  - Every 100ms: Send `ele_health_t` (ID 0x100) with dummy tilt values.
+  - Use `bsp_can_send()` for transmission.
 
 ---
 
-## 2. WiFi Provisioning System Plan (SoftAP + Web Server)
-[STATUS: COMPLETE]
-- **NVS**: Persistence for SSID/Password.
-- **Web Server**: URL-decoded form handling for credential entry.
-- **Orchestration**: Seamless transition from Config Mode to Monitoring Mode.
+## 2. ESP32 (Gateway Node) - "The Receiver"
+
+### Goal: Enable the TWAI driver and Motion Proxy to bridge real CAN traffic to the system.
+
+- **Main Refactor (`app_main`)**:
+  - Include `can_bsp.h` and `motion_proxy/src/core/task.h`.
+  - Initialize `can_bsp` (Pins 12/13, 500kbps) and `can_bsp_start()`.
+  - Call `mp_task_init()` to start the background listener.
+  - **Comment out** `mock_data_provider_task` creation.
+- **Verification**:
+  - Monitor serial output for "CAN Proxy listener" logs.
+  - Verify SSD1306 Display shows the dummy data sent from STM32.
 
 ---
 
-## 3. Shared Node Communication Protocol
-[STATUS: REFINED]
-- **Protocol Header**: `shared/protocol/esmu_protocol.h` (Consolidated).
-- **Enforcement**: 8-byte packed structures with explicit `uint8_t` for enums.
-- **CAN IDs**:
-  - `CAN_ID_ELE_EMERGENCY (0x010)`
-  - `CAN_ID_ELE_HEALTH (0x100)`
-  - `CAN_ID_EDGE_HEALTH (0x200)`
-- **Verification**: `static_assert` checks in ESP32 `main.c` to guarantee 8-byte packing.
+## 3. Hardware Requirements
+- CAN Transceivers connected to both nodes.
+- 120-ohm termination resistors.
+- Common ground.
 
 ---
 
-## 4. CAN Platform (ESP32 Gateway)
-[STATUS: COMPLETE & VERIFIED]
-- **Abstraction**: `can_platform.h/c` provides a thread-safe wrapper for TWAI.
-- **Verification**: Hardware-less verification via GPIO Matrix loopback (TX -> RX).
-
----
-
-## 5. Gateway Motion Proxy (ESP32)
-[STATUS: IN PROGRESS]
-
-### Objective
-Transition the ESP32 from active sensing to a passive "Motion Proxy" that mirrors the STM32's state.
-
-### Implementation Steps
-1. **Refactor `motion_monitor`**: Rename or refactor to `motion_proxy`.
-2. **CAN RX Service**: Implement a dedicated task that blocks on `can_receive`.
-3. **Registry Bridge**:
-   - `ele_health_packet_t` -> `system_registry_update_from_protocol_health()`.
-   - `edge_heartbeat_packet_t` -> `system_registry_update_from_protocol_heartbeat()`.
-4. **Watchdog**: Implement a timeout check (3s) to detect STM32 disconnects.
-
----
-
-## 6. Edge Node (STM32) Implementation
-[STATUS: NEXT PHASE]
-
-### Objective
-Implement the active safety monitoring and sensor processing on the STM32.
-
-### Implementation Steps
-1. **CAN Driver**: Implement a lightweight CAN manager matching the `can_platform` API.
-2. **MPU6050 Driver**: Port the ESP32 I2C driver to STM32 HAL.
-3. **Motion Logic**: Port EMA filters and tilt calculation to the STM32.
-4. **Fault Detector**: Implement real-time anomaly detection (Shake, Free Fall).
-5. **Protocol Task**: Transmit health packets at 100ms and heartbeat at 1000ms.
-
----
-
-## 7. Verification & Final Integration
-1. **End-to-End Test**: Wire ESP32 and STM32 via CAN transceivers.
-2. **Latency Check**: Verify the OLED "Tilting" animation remains smooth (<150ms total latency).
-3. **Fail-Safe Test**: Disconnect the CAN cable and verify the ESP32 UI shows "COMM LOSS".
+## 4. Success Criteria
+- [ ] ESP32 serial logs show reception of IDs 0x100 and 0x200.
+- [ ] SSD1306 displays "RUNNING" (from STM32 heartbeat).
+- [ ] No "COMMUNICATION LOST" message on ESP32 OLED.
