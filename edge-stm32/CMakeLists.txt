@@ -43,13 +43,25 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Add sources to executable
+file(GLOB_RECURSE APP_SOURCES 
+    "App/src/*.c"
+    "App/modules/bsp/*.c"
+    "App/modules/drivers/*.c"
+    "App/modules/services/*.c"
+)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
+    ${APP_SOURCES}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
+    "App/inc"
+    "App/modules/bsp"
+    "App/modules/drivers"
+    "App/modules/drivers/ssd1306"
+    "App/modules/services"
+    "App/modules/services/edge_logger"
     "../shared/can_protocol"
 )
 
