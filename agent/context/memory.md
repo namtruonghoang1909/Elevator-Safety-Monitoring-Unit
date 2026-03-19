@@ -94,27 +94,34 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
 ### 11. CAN Platform & Inter-MCU Communication (March 2026)
 - **Component**: `components/platform/can_platform`.
 - **Abstraction**: Implemented a thread-safe CAN (TWAI) abstraction layer supporting Normal, No-ACK, and Loopback modes.
-- **Self-Test Solution**: Implemented "Software Loopback" using the ESP32 GPIO Matrix (`esp_rom_gpio_connect_in_signal`) to route TX signal internally to RX input. This enables verification without external transceivers or wiring.
-- **Verification**: Successfully transmitted and received 11-bit CAN frames at 500kbps on GPIO 12/13. Verified data integrity and hardware alert monitoring (TX Success/Bus Errors).
-- **Robustness**: 
-    - Fixed `message.self` flag for loopback support.
-    - Added `can_get_status` for field diagnostics.
-    - Implemented zero-initialization of TWAI message structures to prevent garbage data.
+- **Self-Test Solution**: Implemented "Software Loopback" using the ESP32 GPIO Matrix (`esp_rom_gpio_connect_in_signal`) to route TX signal internally to RX input.
+- **Verification**: Successfully transmitted and received 11-bit CAN frames at 500kbps on GPIO 12/13.
+- **End-to-End**: Verified physical communication between STM32 and ESP32 at 500kbps using MCP2551 transceivers and mandatory 120-ohm termination resistors.
+
+### 12. STM32 Edge Node Porting (March 2026)
+- **SSD1306 Driver**: Successfully ported the ESP32 SSD1306 driver to the STM32 HAL framework. Maintained API symmetry using `bsp_i2c` abstractions.
+- **Edge Logger**: Implemented a local OLED-based "Serial Monitor" for the STM32. Supports multi-line scrolling and `edge_logger_printf` for real-time debugging without a PC.
+- **Fixes**: 
+    - Resolved `HardFault` by increasing `defaultTask` stack size to 512 words (2KB) to support heavy `vsnprintf` operations.
+    - Fixed OLED initialization jitters by moving init into the FreeRTOS task after the scheduler starts.
+    - Synchronized CAN timing (500kbps) between nodes (STM32: Prescaler 1, BS1 12, BS2 3 @ 8MHz HSI).
 
 ---
 
 ## Current Project State
-- **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306, can_platform (ESP32).
+- **Drivers Layer**: [COMPLETE] i2c_platform, mpu6050, ssd1306, can_platform (ESP32/STM32).
 - **Connectivity Layer**: [COMPLETE] wifi_manager, mqtt_manager, connectivity_manager, web_server.
 - **Service Layer**: 
     - Motion Monitor: [COMPLETE]
-    - Display Service: [COMPLETE]
+    - Display Service: [PENDING MIGRATION TO ST7789]
     - Fault Detector: [PENDING]
+    - Edge Logger (STM32): [COMPLETE]
 - **Distributed System**:
-    - Shared Protocol: [IN PROGRESS] Defined `shared/protocol/*.h`.
-    - CAN Communication: [VERIFIED] ESP32 side confirmed.
+    - Shared Protocol: [COMPLETE] Verified `test_packet_t` and ID `0x7FF`.
+    - CAN Communication: [VERIFIED] End-to-end hardware success.
 
 ## Next Session Focus
-- Implement the **Fault Detector** service to analyze motion metrics for anomalies.
-- Transition `motion_monitor` and `fault_detector` logic to the **STM32 Edge Node**.
-- Verify shared protocol struct alignment between ESP32 (XTENSA) and STM32 (ARM Cortex-M).
+- **MPU6050 STM32 Porting**: Move the MPU6050 driver and `motion_monitor` logic from ESP32 to STM32.
+- **ST7789 Migration**: Implement SPI-based ST7789 driver for the ESP32 Gateway.
+- **Fault Detector**: Implement real-time anomaly detection on the Edge node.
+

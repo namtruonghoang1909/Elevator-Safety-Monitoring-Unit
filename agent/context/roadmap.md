@@ -41,8 +41,9 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Implementation: EMA filtering, gravity compensation, and FSM.
   - [x] Verification: Signal integrity and drift tests via Unity. [COMPLETE]
 - **Display Service**
-  - [x] Implementation: Layered UI, elevator visualization, and status icons.
-  - [x] Verification: Visual UI testing. [COMPLETE]
+  - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
+  - [ ] ST7789 Driver (SPI) - **PENDING MIGRATION**.
+  - [ ] UI Adaptation for Color/Higher Resolution.
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.
   - [ ] Verification: Simulated fault detection tests.
