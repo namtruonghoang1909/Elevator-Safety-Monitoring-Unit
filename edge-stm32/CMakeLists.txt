@@ -47,7 +47,13 @@ file(GLOB_RECURSE APP_SOURCES
     "App/src/*.c"
     "App/modules/bsp/*.c"
     "App/modules/drivers/*.c"
+    "App/modules/drivers/mpu6050/*.c"
+    "App/modules/drivers/ssd1306/*.c"
     "App/modules/services/*.c"
+    "App/modules/services/motion_monitor/*.c"
+    "App/modules/services/watchdog/*.c"
+    "App/modules/system/*.c"
+    "App/modules/system/registry/*.c"
 )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
@@ -59,9 +65,15 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     "App/inc"
     "App/modules/bsp"
     "App/modules/drivers"
+    "App/modules/drivers/mpu6050"
     "App/modules/drivers/ssd1306"
     "App/modules/services"
     "App/modules/services/edge_logger"
+    "App/modules/services/display_service"
+    "App/modules/services/motion_monitor"
+    "App/modules/services/watchdog"
+    "App/modules/system"
+    "App/modules/system/registry"
     "../shared/can_protocol"
 )
 

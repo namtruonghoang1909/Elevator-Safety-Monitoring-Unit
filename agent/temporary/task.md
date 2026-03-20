@@ -1,18 +1,23 @@
-# Task: Port MPU6050 and Motion Monitor to STM32
+# Task: Refactor to Native FreeRTOS and Implement MPU6050 Driver
 
-## Status: IN_PROGRESS
+## Status
+- [x] MPU6050 Driver Verification & Initialization
+- [x] Motion Monitor Service Migration
+- [x] Refactor to Native FreeRTOS
+- [ ] System Integration & Final Validation
 
-### 1. MPU6050 Driver Porting
-- [ ] Copy `mpu6050.h` and `mpu6050.c` from ESP32 to `edge-stm32/App/modules/drivers/mpu6050/`.
-- [ ] Adapt I2C calls from `i2c_master.h` (ESP32) to `bsp_i2c.h` (STM32).
-- [ ] Update `edge-stm32/CMakeLists.txt` include paths.
-- [ ] Initialize MPU6050 in `main.c` and verify "Who Am I" ID via `edge_logger`.
+## 1. Native FreeRTOS Refactor
+- [x] Refactor `system_registry.c` to use `SemaphoreHandle_t`.
+- [x] Refactor `motion_monitor.c` to use `xTaskCreate` and `vTaskDelay`.
+- [x] Refactor `watchdog_service.c` to use `xTaskCreate`.
+- [x] Refactor `system.c` to use `xTaskCreate`.
+- [x] Refactor `main.c` to use `StartDefaultTask` with `xTaskCreate`.
 
-### 2. Motion Monitor Service Migration
-- [ ] Copy `motion_monitor` logic to `edge-stm32/App/modules/services/motion_monitor/`.
-- [ ] Adapt timing logic (replace `esp_timer_get_time` with `osKernelSysTick`).
-- [ ] Integrate Motion Monitor into `StartDefaultTask`.
+## 2. Motion Monitor Service
+- [x] Implement 100Hz sensing and filtering.
+- [x] Implement 10ms registry updates.
+- [x] Implement 500ms OLED logging ("H:GOOD/FAULT B:LEVEL/TILT/SHAKE").
 
-### 3. Real Data Transmission
-- [ ] Replace STM32 mock data with real sensor readings from Motion Monitor.
-- [ ] Verify real tilt/vibration data on ESP32 Serial Monitor.
+## 3. Validation
+- [ ] Verify OLED Logger shows initialization and calibration.
+- [ ] Verify motion status updates on OLED in real-time.
