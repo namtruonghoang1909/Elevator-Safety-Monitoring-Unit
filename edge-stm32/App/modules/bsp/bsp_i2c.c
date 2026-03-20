@@ -94,14 +94,6 @@ bsp_i2c_status_t bsp_i2c_read_consecutive_regs(uint8_t dev_addr, uint8_t start_r
     return status;
 }
 
-// ─────────────────────────────────────────────
-// Low-level Byte / Bytes Operations 
-// ─────────────────────────────────────────────
-
-bsp_i2c_status_t bsp_i2c_write_byte(uint8_t dev_addr, uint8_t value) {
-    return bsp_i2c_write_bytes(dev_addr, &value, 1);
-}
-
 bsp_i2c_status_t bsp_i2c_write_bytes(uint8_t dev_addr, const uint8_t *data, uint16_t len) {
     if (i2c_mutex == NULL) return BSP_I2C_ERROR;
 
