@@ -1,21 +1,21 @@
-# Session Checkpoint - March 19, 2026
+# Session Checkpoint - March 20, 2026
 
 ## Current Working Context
-- **CAN Bus (VERIFIED)**: Successful end-to-end communication between STM32 and ESP32 at 500kbps. 120-ohm termination resistors are installed and mandatory.
-- **STM32 OLED (VERIFIED)**: SSD1306 driver ported and `edge_logger` implemented. Local monitoring is active.
-- **Gateway Node**: ESP32 `display_service` disabled pending ST7789 SPI migration. Monitor via Serial.
+- **Edge Node (STM32)**: MPU6050 driver ported and verified (via scanner). Motion Monitor service migrated from ESP32.
+- **Local Logging**: SSD1306 OLED configured as a dedicated `edge_logger`. `display_service` removed to save screen space.
+- **Motion Logic**: EMA filtering and fault detection (Free Fall, Shaking, Moving) running at 100Hz (10ms).
+- **OLED Telemetry**: Logging "H:GOOD/FAULT B:LEVEL/TILT/SHAKE" every 500ms for debug visibility.
 
 ## Completed Today
-1. Ported SSD1306 driver to STM32 HAL.
-2. Implemented `edge_logger` service for STM32.
-3. Synchronized CAN timing (500kbps) on both nodes.
-4. Verified physical signal integrity with `test_packet_t` (ID 0x7FF).
-5. Increased STM32 stack size to 2KB to prevent `HardFault`.
+1. Ported MPU6050 I2C driver from ESP32 to STM32.
+2. Migrated `MotionMonitor` service to STM32 with 10ms registry updates.
+3. Integrated `edge_logger` for real-time motion status visualization.
+4. Refactored `system.c` to handle centralized initialization of sensors and loggers.
 
 ## Pending Tasks
-1. **MPU6050 Porting**: Move the MPU6050 I2C driver from ESP32 to STM32.
-2. **Motion Monitor Migration**: Transition motion analysis logic to the STM32 Edge node.
-3. **ST7789 Driver**: Implement SPI driver for the new color display on Gateway.
+1. **CAN Telemetry Integration**: Broadcast `ele_health_t` and `edge_heartbeat_t` from STM32 (Awaiting user directive).
+2. **ST7789 Driver**: Implement SPI driver for the new color display on ESP32 Gateway.
+3. **End-to-End Test**: Verify STM32 motion data is correctly received by ESP32 via CAN.
 
 ## Next Step
-Start the MPU6050 driver porting to STM32.
+Wait for directive to implement CAN telemetry or start ST7789 Gateway driver.

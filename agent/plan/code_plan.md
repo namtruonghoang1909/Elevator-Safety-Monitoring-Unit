@@ -1,49 +1,91 @@
-# CAN Bus Playground Test Plan (Direct in main.c)
+# ESMU Edge Node (STM32) - System Registry & Whiteboard Architecture
 
 ## Objective
-Verify CAN communication between STM32 and ESP32 by implementing simple transmission and reception logic directly in the `main.c` files of both nodes. This validates the hardware and BSP layers before building higher-level services.
+Implement a thread-safe "Whiteboard" (System Registry) architecture for the Edge Node. This design allows the `MotionMonitor` to publish high-frequency health data to a shared memory area, which the `DisplayService` and `CANService` can then consume at their own rates.
 
 ---
 
-## 1. STM32 (Edge Node) - "The Transmitter"
+## 1. The Whiteboard (System Registry)
 
-### Goal: Send dummy ESMU protocol packets directly from the default FreeRTOS task.
+A central component (`system_registry.c`) will hold the current state of the elevator.
 
-- **Timing Configuration**:
-  - Update `MX_CAN_Init` in `main.c` for 500kbps (Prescaler: 1, BS1: 12, BS2: 3).
-- **Initialization**:
-  - Include `bsp_can.h` and `esmu_protocol.h`.
-  - Call `bsp_can_init()` in `main()` before `osKernelStart()`.
-- **Test Logic (in `StartDefaultTask`)**:
-  - Every 1000ms: Send `edge_heartbeat_t` (ID 0x200).
-  - Every 100ms: Send `ele_health_t` (ID 0x100) with dummy tilt values.
-  - Use `bsp_can_send()` for transmission.
+### A. Shared Data Structure
+```c
+typedef struct {
+    motion_metrics_t metrics;    // Tilt, Acceleration, Health Score
+    mpu6050_scaled_data_t raw;   // Real-time G-forces
+    node_state_t state;          // INIT, MONITORING, EMERGENCY, ERROR
+    uint32_t last_update_tick;   // For watchdog/freshness checks
+} system_registry_t;
+```
 
----
-
-## 2. ESP32 (Gateway Node) - "The Receiver"
-
-### Goal: Enable the TWAI driver and Motion Proxy to bridge real CAN traffic to the system.
-
-- **Main Refactor (`app_main`)**:
-  - Include `can_bsp.h` and `motion_proxy/src/core/task.h`.
-  - Initialize `can_bsp` (Pins 12/13, 500kbps) and `can_bsp_start()`.
-  - Call `mp_task_init()` to start the background listener.
-  - **Comment out** `mock_data_provider_task` creation.
-- **Verification**:
-  - Monitor serial output for "CAN Proxy listener" logs.
-  - Verify SSD1306 Display shows the dummy data sent from STM32.
+### B. Concurrency Control
+- **Mutex**: A single Mutex (`registry_mutex`) will protect the entire structure.
+- **APIs**:
+    - `registry_write(system_registry_t *data)`: Thread-safe update.
+    - `registry_read(system_registry_t *out_data)`: Thread-safe read.
 
 ---
 
-## 3. Hardware Requirements
-- CAN Transceivers connected to both nodes.
-- 120-ohm termination resistors.
-- Common ground.
+## 2. Task Architecture (Registry-Based)
+
+### A. Motion Task (The Writer)
+- **Rate**: 100Hz (10ms).
+- **Logic**:
+    1. Read MPU6050.
+    2. Process filters and detect states.
+    3. **Registry Write**: Update the Whiteboard with new metrics and raw data.
+
+### B. Display Task (The Reader)
+- **Rate**: 10Hz (100ms).
+- **Logic**:
+    1. **Registry Read**: Fetch the latest data from the Whiteboard.
+    2. Update SSD1306 OLED with the values retrieved.
+
+### C. System Task (The Orchestrator)
+- **Rate**: 10Hz (100ms).
+- **Logic**:
+    1. **Registry Read**: Check for emergencies or sensor timeouts.
+    2. Handle state transitions (e.g., INIT -> MONITORING).
+    3. (Future) Feed data from Registry into CAN packets.
 
 ---
 
-## 4. Success Criteria
-- [ ] ESP32 serial logs show reception of IDs 0x100 and 0x200.
-- [ ] SSD1306 displays "RUNNING" (from STM32 heartbeat).
-- [ ] No "COMMUNICATION LOST" message on ESP32 OLED.
+## 3. Initialization & Lifecycle
+
+### A. Sequence (in `main.c`)
+1. **BSP Init**: HW initialization.
+2. **System Core Init**:
+    - `system_registry_init()`: Create the Mutex and initialize the Whiteboard memory.
+    - `system_core_init()`: Create any additional IPC if needed.
+3. **System Start**: Spawn `MotionTask`, `DisplayTask`, and `SystemTask`.
+4. **Scheduler Start**: `osKernelStart()`.
+
+---
+
+## 4. Implementation Roadmap
+
+### Phase 1: Registry Foundation
+- [ ] Create `system_registry.h` and `system_registry.c`.
+- [ ] Implement `registry_init`, `registry_read`, and `registry_write`.
+- [ ] Implement `system_core_init()` and `system_start()` in a new `system.c`.
+
+### Phase 2: Refactor Motion & Display
+- [ ] **Motion Monitor**:
+    - Strip all OLED calls.
+    - Implement `registry_write` at the end of each 100Hz loop.
+- [ ] **Display Service**:
+    - Create `display_service.c`.
+    - Implement `DisplayTask` to `registry_read` and draw the UI.
+
+### Phase 3: System Logic
+- [ ] Implement the 4-state FSM in `system.c` using the Registry as the source of truth.
+- [ ] Add watchdog logic: If `last_update_tick` is too old, set State to **ERROR**.
+
+---
+
+## 5. Success Criteria
+- [ ] Multiple tasks can access elevator health data without race conditions.
+- [ ] Adding a new "consumer" (like CAN) is as simple as reading from the Whiteboard.
+- [ ] `main.c` is minimal and clean.
+- [ ] Hardware initialization occurs during the `INIT` state of the FSM.

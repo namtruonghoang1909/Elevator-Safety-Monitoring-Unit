@@ -11,11 +11,14 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Implementation: Thread-safe master abstraction.
   - [x] Verification: Unit tests for bus management.
 - **MPU6050**
-  - [x] Implementation: Raw and scaled data processing.
-  - [x] Verification: Interactive Unity tests (Gravity/FSR/Recovery).
+  - [x] Implementation: Raw and scaled data processing (STM32 Ported).
+  - [x] Verification: Interactive Unity tests (Gravity/FSR/Recovery). [COMPLETE]
 - **SSD1306**
   - [x] Implementation: Framebuffer and primitive drawing.
   - [x] Verification: Interactive visual suite. [COMPLETE]
+- **Native FreeRTOS (STM32)**
+  - [x] Implementation: Direct migration from CMSIS-RTOS to Native API.
+  - [x] Verification: System stability and resource allocation. [COMPLETE]
 
 ---
 
@@ -37,11 +40,14 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 ## III. Service Layer
 *High-level logic and data processing services.*
 
-- **Motion Monitor**
-  - [x] Implementation: EMA filtering, gravity compensation, and FSM.
-  - [x] Verification: Signal integrity and drift tests via Unity. [COMPLETE]
+- **Motion Monitor (Professional)**
+  - [x] Implementation: 100Hz sensing, EMA filtering, 3-axis calibration.
+  - [x] Maintenance: Gyro-based vibration analysis (LOW/WARN/CRIT).
+  - [x] Safety: Free Fall (<0.35g) and Sudden Impact (>1.6g).
+  - [x] Verification: Signal integrity and real-world ride quality. [COMPLETE]
 - **Display Service**
   - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
+  - [x] Edge Logger (Diagnostic OLED Mode) - **ACTIVE**.
   - [ ] ST7789 Driver (SPI) - **PENDING MIGRATION**.
   - [ ] UI Adaptation for Color/Higher Resolution.
 - **Fault Detector**
