@@ -5,4 +5,4 @@ set(srcs
 
 idf_component_register(SRCS ${srcs}
                     INCLUDE_DIRS "include"
-                    REQUIRES freertos system can_bsp can_protocol)
+                    REQUIRES freertos system can_bsp can_protocol telemetry_service)

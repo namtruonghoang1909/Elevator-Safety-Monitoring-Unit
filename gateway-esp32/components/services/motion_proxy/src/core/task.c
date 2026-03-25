@@ -9,6 +9,7 @@
 #include "can_bsp.h"
 #include "system_registry.h"
 #include "esmu_protocol.h"
+#include "telemetry_service.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -37,23 +38,23 @@ static void can_listener_task(void *pvParameters) {
                 case CAN_ID_ELE_HEALTH: {
                     ele_health_t pkt;
                     memcpy(&pkt, data, 8);
-                    ESP_LOGI(TAG, "HEALTH: Tilt Avg %d Max %d Score %d", pkt.avg_tilt, pkt.max_tilt, pkt.health_score);
+                    ESP_LOGI(TAG, "received HEALTH: Vib %d mg Speed %d mm/s State %d", pkt.vibration, pkt.speed, pkt.motion_state);
                     system_registry_update_from_protocol_health(&pkt);
                     break;
                 }
                 case CAN_ID_ELE_EMERGENCY: {
                     ele_emergency_t pkt;
                     memcpy(&pkt, data, 8);
-                    ESP_LOGW(TAG, "!! EMERGENCY RECEIVED !! Fault Code: %d Severity: %d", pkt.fault_code, pkt.severity);
+                    ESP_LOGW(TAG, "!! EMERGENCY !! Code: %d Sev: %d Val: %d TS: %d", pkt.fault_code, pkt.severity, pkt.fault_value, pkt.timestamp);
                     system_registry_update_from_protocol_emergency(&pkt);
-                    // system_registry_set_subtext("FAULT DETECTED ON EDGE");
+                    telemetry_service_force_publish();
                     break;
                 }
                 case CAN_ID_EDGE_HEALTH: {
                     edge_heartbeat_t hb;
                     memcpy(&hb, data, 8);
                     s_ctx.last_heartbeat_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
-                    ESP_LOGI(TAG, "HEARTBEAT: State %d Uptime %lu sec", hb.edge_state, hb.uptime_sec);
+                    ESP_LOGI(TAG, "received HEARTBEAT: State %d Err %d Uptime %lu", hb.edge_state, hb.error_code, (unsigned long)hb.uptime_sec);
                     system_registry_update_from_protocol_heartbeat(&hb);
                     break;
                 }
@@ -65,7 +66,7 @@ static void can_listener_task(void *pvParameters) {
                         char buf[32];
                         snprintf(buf, sizeof(buf), "UPTIME: %lu", pkt.uptime);
                         system_registry_set_subtext(buf);
-                        ESP_LOGI(TAG, "CAN Signal Received - Uptime: %lu", pkt.uptime);
+                        ESP_LOGI(TAG, "received CAN Signal Received - Uptime: %lu", pkt.uptime);
                     } else {
                         ESP_LOGW(TAG, "CAN Signal Received but Magic Byte Mismatch: 0x%02X", pkt.magic_byte);
                     }
@@ -95,6 +96,7 @@ static void watchdog_task(void *pvParameters) {
         // If no heartbeat for 3 seconds, mark as offline
         if (last != 0 && (now - last) > 3000) {
             system_registry_update_edge_status(false);
+            system_registry_set_state(SYSTEM_STATE_ERROR);
             system_registry_set_subtext("COMMUNICATION LOST");
         }
 

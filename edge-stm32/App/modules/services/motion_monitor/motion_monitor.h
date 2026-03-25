@@ -9,23 +9,18 @@
 #include <stdbool.h>
 #include "mpu6050.h"
 
+#include "protocol_types.h"
+
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
 
-typedef enum {
-    MOTION_STATE_STATIONARY = 0,
-    MOTION_STATE_MOVING_UP,
-    MOTION_STATE_MOVING_DOWN,
-    MOTION_STATE_SHAKING,
-    MOTION_STATE_FREE_FALL
-} motion_state_t;
-
 typedef struct {
     motion_state_t state;
-    float avg_tilt;        /**< EMA smoothed tilt magnitude */
-    float max_tilt;        /**< Peak tilt in current window */
-    uint8_t health_score;  /**< 0-100 calculated score */
+    health_status_t health_status; /**< Operational health level */
+    float vibration;               /**< EMA smoothed vibration magnitude */
+    int16_t speed;                 /**< Elevator speed in mm/s (Placeholder) */
+    uint8_t health_score;          /**< 0-100 calculated score */
 } motion_metrics_t;
 
 typedef struct {
@@ -43,8 +38,9 @@ bool motion_monitor_init(const motion_monitor_config_t *cfg);
 
 /**
  * @brief Start the internal FreeRTOS task
+ * @return true if task created successfully
  */
-void motion_monitor_start(void);
+bool motion_monitor_start(void);
 
 /**
  * @brief Get current metrics and state

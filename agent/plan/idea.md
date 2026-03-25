@@ -22,3 +22,24 @@ Both nodes now follow the same directory and naming convention:
 ## 4. Concurrency Model (FreeRTOS)
 - **`MotionTask` (High Priority, 10ms)**: IMU sampling -> Fault Detection -> CAN Health update (100ms).
 - **`SystemTask` (Low Priority, 1000ms)**: Heartbeat transmission -> Status LED blink.
+
+---
+
+## 5. Remote Fault Acknowledgment (New Idea)
+**Objective**: Allow remote users/operators to acknowledge and clear latched faults from the CoreIoT dashboard.
+
+**Flow**:
+1.  **Fault Detected**: Edge node detects fault -> CAN Emergency packet -> Gateway (ESP32).
+2.  **Publish**: Gateway publishes MQTT message with `ele_fault_code > 0` and `ele_fault_msg`.
+3.  **User Action**: User presses "Acknowledge" button on CoreIoT dashboard.
+4.  **Signal Back**: CoreIoT sends an MQTT message (e.g., to `esmu/cmd/ack`) to the ESP32 Gateway.
+5.  **Local Clear**: 
+    -   Gateway receives ACK.
+    -   Gateway clears its local `system_registry` fault state (`fault_active = false`).
+    -   Gateway resets `current_state` to `SYSTEM_STATE_MONITORING`.
+6.  **Confirm Clear**: Gateway publishes a confirmation MQTT message with `ele_fault_code = 0` to clear the dashboard status.
+
+**Implementation Strategy**:
+-   **MQTT Subscription**: Gateway needs to subscribe to a command topic.
+-   **Registry Update**: Add a function to `system_registry` to clear faults.
+-   **CAN Command (Optional)**: If the Edge node also latches, Gateway may need to send a CAN command back to the Edge node to reset its state.

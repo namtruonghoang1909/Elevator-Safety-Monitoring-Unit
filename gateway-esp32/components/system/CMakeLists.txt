@@ -1,10 +1,18 @@
 idf_component_register(
     SRCS 
-        "system.c"
-        "system_registry.c"
-        "nvs_storage.c"
-        "controller/system_controller.c"
-    INCLUDE_DIRS "include"
+        "core/system.c"
+        "core/system_controller.c"
+        "boot/system_boot.c"
+        "boot/system_hw.c"
+        "registry/system_registry.c"
+        "storage/nvs_storage.c"
+        "services/heartbeat.c"
+    INCLUDE_DIRS 
+        "core"
+        "boot"
+        "registry"
+        "storage"
+        "services"
     REQUIRES 
         nvs_flash 
         esp_common 
@@ -14,9 +22,8 @@ idf_component_register(
         can_protocol
     PRIV_REQUIRES 
         i2c_bsp
-        display
         connectivity_manager
         motion_proxy
-        telemetry
+        telemetry_service
         can_bsp
 )

@@ -14,7 +14,8 @@
 typedef enum {
     BSP_CAN_OK = 0,
     BSP_CAN_ERROR,
-    BSP_CAN_BUSY
+    BSP_CAN_BUSY,
+    BSP_CAN_TIMEOUT
 } bsp_can_status_t;
 
 /**

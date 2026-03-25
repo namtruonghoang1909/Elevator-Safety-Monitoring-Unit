@@ -106,6 +106,29 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - Fixed OLED initialization jitters by moving init into the FreeRTOS task after the scheduler starts.
     - Synchronized CAN timing (500kbps) between nodes (STM32: Prescaler 1, BS1 12, BS2 3 @ 8MHz HSI).
 
+### 13. Edge Telemetry & Multi-level Health Status (March 2026)
+- **Component**: Created `edge_telemetry` service on STM32 Edge Node.
+- **Protocol Update**: 
+    - Updated `ele_health_t` to include a `health_status` field.
+    - Added `health_status_t` enum (STABLE, WARNING, EMERGENCY).
+- **Functionality**:
+    - Implemented periodic CAN broadcasting: `ele_health_t` (100ms), `edge_heartbeat_t` (1s), and `test_packet_t` (1s).
+    - Integrated multi-level health logic into `motion_monitor` (e.g., Warning on high vibration).
+    - Updated ESP32 `system_registry` to handle the new health status and trigger the **Full Alert View** during `HEALTH_EMERGENCY`.
+- **Debugging**: Added 1Hz "Visual Heartbeat" LEDs to both nodes (STM32: PC13, ESP32: GPIO 4) for rapid state confirmation.
+- **Verification**: Verified protocol alignment between STM32 (broadcast) and ESP32 (proxy receiver).
+
+### 14. ESP32 Gateway System Component Refactor (March 22, 2026)
+- **What**: Reorganized the `system` component into a functional subdirectory structure (`core/`, `boot/`, `registry/`, `storage/`, `services/`) and co-located header files with their source files.
+- **Where**: `gateway-esp32/components/system/`
+- **Why**: To align with "ESMU Coding Rules" for file organization, improve maintainability, and clarify module responsibilities by separating FSM logic from hardware/service initialization.
+- **Result**: Successfully verified the new structure with a clean build on the Gateway ESP32 node. Header visibility was resolved by using `PUBLIC_INCLUDE_DIRS` (temporarily using `INCLUDE_DIRS` for testing, then successfully verified).
+
+### 15. SPI Infrastructure & ST7789 Planning (March 22, 2026)
+- **What**: Drafted a comprehensive implementation plan for a thread-safe SPI BSP and an ST7789 driver for the Gateway's color display upgrade.
+- **Where**: `agent/plan/code_plan.md` and `agent/temporary/task.md`.
+- **Status**: Ready for implementation in the next session.
+
 ---
 
 ## Current Project State
@@ -120,8 +143,64 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
     - Shared Protocol: [COMPLETE] Verified `test_packet_t` and ID `0x7FF`.
     - CAN Communication: [VERIFIED] End-to-end hardware success.
 
-## Next Session Focus
+- **Next Session Focus**:
 - **MPU6050 STM32 Porting**: Move the MPU6050 driver and `motion_monitor` logic from ESP32 to STM32.
 - **ST7789 Migration**: Implement SPI-based ST7789 driver for the ESP32 Gateway.
 - **Fault Detector**: Implement real-time anomaly detection on the Edge node.
+
+### 16. Telemetry Component Naming Consistency (March 24, 2026)
+- **What**: Renamed the `telemetry` component directory to `telemetry_service` and updated all internal dependencies.
+- **Where**: `gateway-esp32/components/services/communication/telemetry_service`
+- **Why**: Resolved a build failure where `motion_proxy` required `telemetry_service` but the component was named `telemetry` by the ESP-IDF build system (matching its folder name). Standardized the naming across `CMakeLists.txt` and source files.
+- **Result**: Successfully verified with a full project build on the Gateway ESP32 node.
+
+### 17. Elevator Fault Data Flow & Hysteresis Fix (March 25, 2026)
+- **What**: Resolved a discrepancy where the ESP32 Gateway reported constant faults while the STM32 Edge OLED appeared healthy.
+- **Where**: 
+    - `edge-stm32/App/modules/services/motion_monitor/motion_monitor.c`
+    - `gateway-esp32/components/system/registry/system_registry.c`
+- **Why**: 
+    - **STM32**: Vibration thresholds were too sensitive (5.0 deg/s) and calculated from raw, unfiltered gyro data, causing noise spikes to trigger emergency states. The 2Hz OLED logging missed these 10ms spikes.
+    - **ESP32**: The system registry failed to reset the `fault_active` and `current_state` flags when receiving a `HEALTH_STABLE` status.
+- **Fixes**:
+    - **STM32**: Increased vibration thresholds (MED: 5.0, HIGH: 15.0), applied EMA filtering to vibration magnitude (filt_vib), implemented a 5-cycle (50ms) debounce for emergency entry/exit, and updated OLED logging to show the "worst" health status observed in each 500ms window.
+    - **ESP32**: Updated `system_registry_update_from_protocol_health` to reset fault and error states upon receiving `HEALTH_STABLE`.
+- **Result**: Improved system stability by eliminating noise-induced CAN spam and ensured the local display accurately reflects transient faults.
+
+### 18. MQTT Telemetry Refactor & Protocol Expansion (March 25, 2026)
+- **What**: Refactored MQTT telemetry messages for clarity and expanded the shared protocol to include motion state.
+- **Where**: 
+    - `shared/can_protocol/protocol_types.h` / `protocol_packets.h`
+    - `edge-stm32/App/modules/services/edge_telemetry/edge_telemetry.c`
+    - `gateway-esp32/components/services/communication/telemetry_service/telemetry_service.c`
+    - `gateway-esp32/components/system/registry/system_registry.c` / `system_registry.h`
+- **Why**: The previous MQTT messages lacked clarity (no prefixes) and missed critical "system integrity" data (Gateway uptime, Edge connectivity status). Motion state was also missing from the CAN health packet.
+- **Fixes**:
+    - **Protocol**: Added `motion_state_t` to the shared protocol and included it in the `ele_health_t` CAN packet (8-byte packed).
+    - **STM32**: Updated `edge_telemetry` to send the current elevator motion state (IDLE, UP, DOWN, etc.) via CAN.
+    - **ESP32**: 
+        - Updated `system_registry` to extract and store the raw motion state from CAN.
+        - Refactored `telemetry_service` to combine periodic "health" and "node" messages into a single **Unified Telemetry** JSON payload.
+        - Added prefixes (`ele_`, `edge_`, `gw_`) to all MQTT fields for source clarification.
+        - Expanded the payload to include: `ele_motion`, `edge_connected`, `gw_wifi_rssi`, `gw_uptime`, and `gw_state`.
+- **Result**: Reduced MQTT overhead and provided a more professional, comprehensive "single source of truth" message for cloud monitoring.
+
+### 19. Telemetry Cleanup & Fault Messaging Fix (March 25, 2026)
+- **What**: Removed redundant `max_tilt` data and fixed a bug where fault messages were overwritten by connectivity status.
+- **Where**: 
+    - `shared/can_protocol/protocol_packets.h`
+    - `edge-stm32/App/modules/services/motion_monitor/motion_monitor.h`
+    - `edge-stm32/App/modules/services/edge_telemetry/edge_telemetry.c`
+    - `gateway-esp32/components/services/communication/telemetry_service/telemetry_service.c`
+    - `gateway-esp32/components/system/registry/system_registry.c` / `system_registry.h`
+- **Why**: 
+    - `max_tilt` was deemed unnecessary for the current telemetry requirements.
+    - `ele_fault_msg` was pulling from `sub_status`, which is shared with connectivity updates (like "Connected"), causing the fault description to be lost.
+- **Fixes**:
+    - **Protocol**: Removed `max_tilt` from `ele_health_t` and added reserved padding.
+    - **STM32**: Removed `max_tilt` from `motion_metrics_t` and stopped broadcasting it via CAN.
+    - **ESP32**: 
+        - Removed `max_tilt` from the system registry and MQTT payload.
+        - Implemented `get_fault_msg()` in `telemetry_service.c` to map fault codes (e.g., 3 -> "EMERGENCY STOP") directly to the MQTT `ele_fault_msg` field, bypassing the shared `sub_status`.
+- **Result**: Cleaner telemetry payloads and guaranteed accuracy for fault reporting in the cloud.
 

@@ -5,7 +5,10 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /**
  * @brief Start the system watchdog task
+ * @return true if task created successfully
  */
-void watchdog_service_start(void);
+bool watchdog_service_start(void);

@@ -14,5 +14,6 @@ bool system_core_init(void);
 
 /**
  * @brief Start all autonomous tasks (Motion, Display, System)
+ * @return true if all services started successfully
  */
-void system_start(void);
+bool system_start(void);

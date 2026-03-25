@@ -4,8 +4,10 @@
  */
 
 #include "system.h"
+#include "heartbeat.h"
 #include "system_registry.h"
 #include "motion_monitor.h"
+#include "edge_telemetry.h"
 #include "watchdog_service.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -27,6 +29,7 @@ static TaskHandle_t systemTaskHandle = NULL;
 // ─────────────────────────────────────────────
 
 static void system_task(void *argument) {
+    TickType_t task_start_tick = xTaskGetTickCount();
     TickType_t last_wake_time = xTaskGetTickCount();
 
     for(;;) {
@@ -35,10 +38,30 @@ static void system_task(void *argument) {
         switch (current_state) {
             case NODE_STATE_INIT:
                 // Wait for sensors to be ready (handled by defaultTask sequence)
-                // For now, let's just wait 3 seconds and switch
-                if (xTaskGetTickCount() > pdMS_TO_TICKS(3000)) {
+                // We wait 5 seconds AFTER the system task has started (post-calibration)
+                if (xTaskGetTickCount() - task_start_tick > pdMS_TO_TICKS(5000)) {
+                    // Transition to MONITORING
                     system_registry_set_state(NODE_STATE_MONITORING);
                     edge_logger_print("SYSTEM: MONITORING");
+
+                    // Start Background Services AFTER stability/calibration window
+                    if (motion_monitor_start()) {
+                        edge_logger_print("MONITOR STARTED");
+                    } else {
+                        edge_logger_print("ERR: MONITOR FAIL");
+                    }
+
+                    if (edge_telemetry_start()) {
+                        edge_logger_print("TELEM STARTED");
+                    } else {
+                        edge_logger_print("ERR: TELEM FAIL");
+                    }
+
+                    if (watchdog_service_start()) {
+                        edge_logger_print("WD STARTED");
+                    } else {
+                        edge_logger_print("ERR: WD FAIL");
+                    }
                 }
                 break;
 
@@ -48,6 +71,7 @@ static void system_task(void *argument) {
                 if (system_registry_read(&data)) {
                     if (data.metrics.state == MOTION_STATE_SHAKING || 
                         data.metrics.state == MOTION_STATE_FREE_FALL) {
+                        
                         system_registry_set_state(NODE_STATE_EMERGENCY);
                         edge_logger_print("!! EMERGENCY !!");
                     }
@@ -78,18 +102,27 @@ bool system_core_init(void) {
     edge_logger_init(0x3C);
     edge_logger_print("SYSTEM CORE INIT");
     
+    // Start Visual Heartbeat
+    heartbeat_start();
+    
+    BaseType_t ret = xTaskCreate(system_task, "SystemTask", 512, NULL, tskIDLE_PRIORITY + 1, &systemTaskHandle);
+    if (ret != pdPASS) {
+        edge_logger_print("ERR: SYS TASK FAIL");
+    }
+    
     return true;
 }
 
-void system_start(void) {
-    // Start Services
+bool system_start(void) {
+    // 1. Initialize & Calibrate Sensors (Blocking)
+    // motion_monitor_init calls motion_monitor_calibrate internally
     if (!motion_monitor_init(NULL)) {
         edge_logger_print("ERR: MPU INIT FAIL");
+        return false;
     }
-    motion_monitor_start();
     
-    watchdog_service_start();
+    edge_logger_print("SENSOR CALIBRATED");
+    edge_logger_print("WAITING 5S...");
 
-    // Start Controller
-    xTaskCreate(system_task, "SystemTask", 512, NULL, tskIDLE_PRIORITY + 1, &systemTaskHandle);
+    return true;
 }
