@@ -21,8 +21,8 @@ The project is architected as a **Dual-Node Distributed System** connected via a
 ## 🛠️ Hardware Stack
 - **MCUs**: ESP32-WROOM-32, STM32F103C8T6 (BluePill).
 - **Sensors**: MPU6050 (6-axis Accel/Gyro).
-- **Display**: SSD1306 (128x64 OLED).
-- **Communication**: MCP2551/VP230 CAN Transceivers.
+- **Display**: SSD1306, ST7789.
+- **Communication**: MCP2551 CAN Transceivers.
 
 ## 📂 Project Structure
 ```text
