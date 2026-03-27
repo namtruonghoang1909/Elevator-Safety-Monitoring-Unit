@@ -122,7 +122,13 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -269,6 +275,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(STATUS_LED_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : MONITOR_ACTIVATE_BUTTON_Pin */
+  GPIO_InitStruct.Pin = MONITOR_ACTIVATE_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(MONITOR_ACTIVATE_BUTTON_GPIO_Port, &GPIO_InitStruct);
+
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
@@ -287,25 +299,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void * argument)
 {
-  if(!system_core_init())
-  {
-    edge_logger_print("CORE INIT FAIL");
-    Error_Handler();
-  }
-
-  if(!system_start())
-  {
-    edge_logger_print("SYS START FAIL");
-  } else {
-    edge_logger_print("SYSTEM READY");
-  }
-
-  TickType_t last_wake_time = xTaskGetTickCount();
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
+  
+  // 1. Initialize ESMU System Core (Registry, Logger, Visual Heartbeat)
+  if (!system_core_init()) {
+      Error_Handler();
+  }
+
+  // 3. This task is no longer needed
   for(;;)
   {
-    vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
   /* USER CODE END 5 */
 }
