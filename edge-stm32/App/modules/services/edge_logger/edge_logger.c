@@ -44,17 +44,30 @@ void edge_logger_init(uint8_t i2c_addr) {
 }
 
 void edge_logger_print(const char *msg) {
+    int line_to_draw = 0;
+
     if (s_line_count >= MAX_LOG_LINES) {
         // Shift lines up
         for (int i = 0; i < MAX_LOG_LINES - 1; i++) {
             strncpy(s_log_buffer[i], s_log_buffer[i+1], CHARS_PER_LINE);
         }
         strncpy(s_log_buffer[MAX_LOG_LINES - 1], msg, CHARS_PER_LINE);
+        line_to_draw = -1; // Flag to indicate full refresh needed due to scroll
     } else {
         strncpy(s_log_buffer[s_line_count], msg, CHARS_PER_LINE);
+        line_to_draw = s_line_count;
         s_line_count++;
     }
-    edge_logger_refresh();
+
+    if (line_to_draw == -1) {
+        edge_logger_refresh(); // Full refresh only on scroll
+    } else {
+        // Partial refresh: just draw the new line
+        ssd1306_set_cursor(line_to_draw, 0);
+        uint8_t blank[SSD1306_WIDTH] = {0};
+        ssd1306_write_data(blank, SSD1306_WIDTH);
+        ssd1306_write_string(s_log_buffer[line_to_draw], line_to_draw, 0);
+    }
 }
 
 void edge_logger_printf(const char *fmt, ...) {

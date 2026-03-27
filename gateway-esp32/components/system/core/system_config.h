@@ -5,7 +5,8 @@
 
 /* Hardware Pins */
 #define CONFIG_PIN_PROVISION_BUTTON 15
-#define CONFIG_PIN_STATUS_LED      4
+#define CONFIG_PIN_STATUS_LED      2
+#define CONFIG_PIN_CONFIG_LED      4
 
 /* CAN Hardware Configuration */
 #define CAN_TX_PIN           12

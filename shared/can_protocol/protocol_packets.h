@@ -1,6 +1,6 @@
 /**
  * @file protocol_packets.h
- * @brief Strictly packed 8-byte structs for CAN payloads
+ * @brief Strictly packed 8-byte structs for CAN payloads (Improved Version)
  */
 
 #pragma once
@@ -8,46 +8,53 @@
 #include <stdint.h>
 #include "protocol_types.h"
 
-/**
- * @brief Elevator health status message (CAN_ID_ELE_HEALTH)
- * 8 Bytes total
- */
+/* ============================================================
+ * Elevator Health Status (CAN_ID_ELE_HEALTH)
+ * Sent periodically (e.g., every 1–3 seconds)
+ * ============================================================ */
 typedef struct __attribute__((packed)) {
-    int16_t avg_tilt;            /**< Average tilt magnitude (scaled * 100) */
-    int16_t max_tilt;            /**< Peak tilt magnitude in window (scaled * 100) */
-    uint8_t balance;             /**< balance_state_t (cast to uint8_t) */
-    uint8_t health_score;        /**< 0-100 score representing overall stability */
-    uint8_t reserved[2];         /**< Alignment padding */
+    int16_t vibration;        /**< Vibration magnitude (mg * 100) */
+    int16_t speed;            /**< Elevator speed (mm/s or scaled) */
+    uint8_t motion_state;     /**< motion_state_t (IDLE, UP, DOWN, STOP) */
+    uint8_t health_status;    /**< health_status_t (STABLE, WARN, EMERGENCY) */
+    uint16_t reserved;        /**< Padding to 8 bytes */
 } ele_health_t;
 
-/**
- * @brief Elevator emergency fault message (CAN_ID_ELE_EMERGENCY)
- * 8 Bytes total
- */
+
+/* ============================================================
+ * Elevator Emergency Fault (CAN_ID_ELE_EMERGENCY)
+ * Sent immediately when fault is detected
+ * ============================================================ */
 typedef struct __attribute__((packed)) {
-    uint8_t fault_code;          /**< fault_code_t (cast to uint8_t) */
-    uint8_t severity;            /**< Severity level (1-5) */
-    int16_t fault_value;         /**< Sensor value that triggered the fault (scaled) */
-    uint8_t reserved[4];         /**< Alignment padding */
+    uint8_t fault_code;       /**< fault_code_t */
+    uint8_t severity;         /**< Severity level (1–5) */
+    uint8_t motion_state;     /**< Context: motion_state_t */
+    uint8_t reserved;         /**< Padding to 8 bytes */
+    int16_t fault_value;      /**< Sensor value that triggered fault */
+    uint16_t timestamp;       /**< Relative time (ms or tick count) */
 } ele_emergency_t;
 
-/**
- * @brief Simple test packet for signal validation (CAN_ID_TEST_SIGNAL)
- * 8 Bytes total
- */
-typedef struct __attribute__((packed)) {
-    uint32_t uptime;             /**< Simple incrementing counter */
-    uint8_t  magic_byte;         /**< Should be 0xA5 to confirm alignment */
-    uint8_t  reserved[3];        /**< Padding */
-} test_packet_t;
 
-/**
- * @brief Edge node heartbeat and diagnostics (CAN_ID_EDGE_HEALTH)
- * 8 Bytes total
- */
+/* ============================================================
+ * Edge Node Heartbeat (CAN_ID_EDGE_HEALTH)
+ * Sent periodically (e.g., every 1 second)
+ * ============================================================ */
 typedef struct __attribute__((packed)) {
-    uint8_t edge_health;         /**< edge_health_t (cast to uint8_t) */
-    uint8_t edge_state;          /**< edge_state_t (INIT, RUNNING, ERROR) */
-    uint32_t uptime_sec;         /**< Node uptime since boot */
-    uint8_t  reserved[2];        /**< Alignment padding */
+    uint8_t edge_health;      /**< edge_health_t (OK, WARN, ERROR) */
+    uint8_t edge_state;       /**< edge_state_t (INIT, RUNNING, ERROR) */
+    uint8_t health_status;    /**< health_status_t (STABLE, WARNING, EMERGENCY) */
+    uint8_t error_code;       /**< Detailed error code (0 = no error) */
+    uint32_t uptime_sec;      /**< Uptime since boot (seconds) */
 } edge_heartbeat_t;
+
+
+/* ============================================================
+ * Test / Debug Packet (CAN_ID_TEST_SIGNAL)
+ * Used for CAN validation, alignment, and packet loss detection
+ * ============================================================ */
+typedef struct __attribute__((packed)) {
+    uint32_t uptime;          /**< Incrementing counter */
+    uint8_t  seq;             /**< Sequence counter (0–255 rollover) */
+    uint8_t  magic_byte;      /**< Must be 0xA5 for validation */
+    uint8_t  reserved[2];     /**< Padding */
+} test_packet_t;

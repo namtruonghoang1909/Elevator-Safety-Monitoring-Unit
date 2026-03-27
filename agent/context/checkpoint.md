@@ -1,21 +1,26 @@
-# Session Checkpoint - March 20, 2026
+# Session Checkpoint - March 25, 2026
 
 ## Current Working Context
-- **Edge Node (STM32)**: MPU6050 driver ported and verified (via scanner). Motion Monitor service migrated from ESP32.
-- **Local Logging**: SSD1306 OLED configured as a dedicated `edge_logger`. `display_service` removed to save screen space.
-- **Motion Logic**: EMA filtering and fault detection (Free Fall, Shaking, Moving) running at 100Hz (10ms).
-- **OLED Telemetry**: Logging "H:GOOD/FAULT B:LEVEL/TILT/SHAKE" every 500ms for debug visibility.
+- **Distributed System**: 
+  - **Fault Flow FIXED**: Resolved the high-frequency fault oscillation issue. 
+  - **STM32 Edge**: Added vibration filtering (EMA), increased thresholds (5.0/15.0 deg/s), and implemented a 50ms (5-cycle) debounce for emergency states. OLED logging now captures the "worst" state in each window.
+  - **ESP32 Gateway**: Fixed a bug where `HEALTH_STABLE` messages failed to reset the system's fault/error state in the registry.
+- **Build Integrity**: ESP32 Node (Gateway) verified to compile successfully after resolving minor header and uninitialized variable issues.
 
 ## Completed Today
-1. Ported MPU6050 I2C driver from ESP32 to STM32.
-2. Migrated `MotionMonitor` service to STM32 with 10ms registry updates.
-3. Integrated `edge_logger` for real-time motion status visualization.
-4. Refactored `system.c` to handle centralized initialization of sensors and loggers.
+1. Investigated and fixed the discrepancy between STM32 local display and ESP32 telemetry/OLED fault reporting.
+2. Implemented hysteresis and filtering in `motion_monitor.c` (STM32).
+3. Fixed registry reset logic in `system_registry.c` (ESP32).
+4. Fixed ESP32 build errors:
+    - Removed redundant/missing `display_service.h` include in `system_boot.c`.
+    - Initialized `ret` variable in `system_boot.c` to prevent compiler error.
+    - Removed undefined `FAULT_OVERTILT` from `telemetry_service.c`.
+5. Updated memory log with Entries 17, 18, and 19.
 
 ## Pending Tasks
-1. **CAN Telemetry Integration**: Broadcast `ele_health_t` and `edge_heartbeat_t` from STM32 (Awaiting user directive).
-2. **ST7789 Driver**: Implement SPI driver for the new color display on ESP32 Gateway.
-3. **End-to-End Test**: Verify STM32 motion data is correctly received by ESP32 via CAN.
+1. **SPI BSP**: Implement the SPI master abstraction layer on ESP32.
+2. **ST7789 Driver**: Implement the SPI driver for the 240x240 color TFT display.
+3. **Display Service**: Refactor the display service to support the ST7789 migration and color UI.
 
 ## Next Step
-Wait for directive to implement CAN telemetry or start ST7789 Gateway driver.
+Implement the SPI BSP component (`gateway-esp32/components/bsp/spi_bsp`) to support the new color display.

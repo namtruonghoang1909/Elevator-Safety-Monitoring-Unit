@@ -2,6 +2,9 @@
 #include "system_config.h"
 #include "system_event.h"
 #include "system_registry.h"
+#include "system_hw.h"
+#include "system_boot.h"
+#include "heartbeat.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -9,14 +12,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_log.h"
-
-#include "display_service.h"
-#include "connectivity_manager.h"
-#include "motion_proxy.h"
-#include "telemetry_service.h"
-#include "can_bsp.h"
-#include "i2c_bsp.h"
-#include "nvs_flash.h"
 
 static const char *TAG = "SYS_CTRL";
 
@@ -26,7 +21,6 @@ static QueueHandle_t system_event_queue = NULL;
 /***********************************************************************
  * STATIC FUNCTION DECLARATIONS
  */
-static esp_err_t system_init();
 static void system_task(void *pvParameters);
 static void system_event_handler(system_event_t new_event);
 static bool is_system_at_state(system_state_id_t state);
@@ -35,91 +29,6 @@ static void state_transition(system_state_id_t new_state);
 /***********************************************************************
  * STATIC FUNCTION DEFINITIONS
  */
-static esp_err_t system_init()
-{
-    // 1. Platform Init (Needed for SSD1306)
-    uint8_t bus_id;
-    esp_err_t ret = i2c_bsp_bus_init(&bus_id, 21, 22);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "I2C bus init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    // 2. Manual Initialization Sequence (Since we are in INITIALIZING now)
-    ret = display_service_init();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Display service init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    system_registry_set_subtext("Booting ESMU Gateway...");
-    vTaskDelay(pdMS_TO_TICKS(1000));
-
-    // 3. Connectivity Services
-    system_registry_set_subtext("Connectivity Init...");
-    connectivity_config_t conn_cfg = {
-        .wifi_config = { 
-            .ssid = NULL,       // Let NVS/Provisioning handle it
-            .password = NULL,
-            .auto_reconnect = true,
-        },
-        .mqtt_config = { 
-            .broker_uri = BROKER_URI, 
-            .client_id = CLIENT_ID,
-            .username = CLIENT_USERNAME,
-            .password = CLIENT_PASSWORD,
-            .port = 1883,
-            .disable_auto_reconnect = false,
-        },
-    };
-    ret = connectivity_manager_init(&conn_cfg);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Connectivity manager init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    ret = connectivity_manager_start();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Connectivity manager start failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    // 4. CAN Platform Init
-    system_registry_set_subtext("CAN Bus Init...");
-    can_bsp_config_t can_cfg = {
-        .tx_pin = CAN_TX_PIN,
-        .rx_pin = CAN_RX_PIN,
-        .baud_rate_kbps = CAN_BAUD_RATE_KBPS,
-        .mode = CAN_MODE_NORMAL // Default to normal for production
-    };
-    ret = can_bsp_init(&can_cfg);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "CAN init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    can_bsp_start();
-
-    // 5. Motion Proxy (Remote Sink Mode)
-    system_registry_set_subtext("Waiting for Edge Node...");
-    ret = motion_proxy_init();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Motion proxy init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    // 6. Telemetry Service
-    ret = telemetry_service_init();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Telemetry service init failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-    
-    vTaskDelay(pdMS_TO_TICKS(1500));
-
-    // 6. Monitoring Phase
-    system_registry_set_subtext("Gateway Active");
-    system_report_event(SYSTEM_EVENT_INITIALIZED);
-
-    return ESP_OK;
-}
 
 static bool is_system_at_state(system_state_id_t state) {
     return current_system_state == state;
@@ -155,7 +64,8 @@ static void system_event_handler(system_event_t new_event) {
         case SYSTEM_EVENT_BOOT:
             if(is_system_at_state(SYSTEM_STATE_IDLE)){
                 state_transition(SYSTEM_STATE_INITIALIZING);
-                system_init();
+                // Trigger Service Initialization Sequence
+                system_boot_begin();
             } 
             break;
 
@@ -187,6 +97,24 @@ static void system_event_handler(system_event_t new_event) {
 esp_err_t system_core_init(void) {
     if (system_event_queue != NULL) return ESP_OK;
 
+    // 1. Initialize System Registry
+    esp_err_t esp_ret = system_registry_init();
+    if(esp_ret != ESP_OK){
+        ESP_LOGE(TAG, "System registry initialization failed");
+        return esp_ret;
+    }
+
+    // 2. Start Visual Heartbeat (Registry must be initialized first)
+    heartbeat_init();
+
+    // 3. Initialize Hardware Abstractions (Buses, Pins)
+    esp_ret = system_hw_init();
+    if (esp_ret != ESP_OK) {
+        ESP_LOGE(TAG, "Hardware initialization failed");
+        return esp_ret;
+    }
+
+    // 3. Create Event Queue
     system_event_queue = xQueueCreate(20, sizeof(system_event_t));
     if (system_event_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create event queue");
@@ -195,17 +123,14 @@ esp_err_t system_core_init(void) {
     
     ESP_LOGI(TAG, "System Controller Init Complete (Queue Created)");
 
+    // 4. Start System Controller Task
     BaseType_t ret = xTaskCreate(system_task, "system_task", 4096, NULL, 10, NULL);
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "System controller task failed");
         return ESP_FAIL;
     }
 
-    esp_err_t esp_ret = system_registry_init();
-    if(esp_ret != ESP_OK){
-        ESP_LOGE(TAG, "System registry initialization failed");
-        return esp_ret;
-    }
+
 
     return ESP_OK;
 }

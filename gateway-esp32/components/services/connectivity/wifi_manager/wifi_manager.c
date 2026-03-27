@@ -88,15 +88,10 @@ esp_err_t wifi_manager_init(const wifi_manager_config_t *config)
 }
 
 esp_err_t wifi_manager_start_sta(void) {
-    wifi_config_t wifi_config = {
-        .sta = {
-            .threshold.authmode = WIFI_AUTH_OPEN,
-            .pmf_cfg = {
-                .capable = true,
-                .required = false
-            },
-        },
-    };
+    wifi_config_t wifi_config = {0};
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+    wifi_config.sta.pmf_cfg.capable = true;
+    wifi_config.sta.pmf_cfg.required = false;
     
     if (s_config.ssid) {
         strncpy((char *)wifi_config.sta.ssid, s_config.ssid, sizeof(wifi_config.sta.ssid) - 1);

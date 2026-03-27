@@ -19,10 +19,10 @@
 typedef struct {
     system_state_id_t current_state;
     int8_t wifi_level;         // 0-4 bars
+    int8_t wifi_rssi;          // Raw RSSI in dBm
     bool mqtt_connected;
     bool edge_node_connected;  // Status of the remote STM32 node
     char motion_state[16];     // "IDLE", "UP", "DOWN"
-    char balance_state[16];    // "STABLE", "TILTING"
     char elevator_health[16];  // "GOOD", "SICK", "CRITICAL"
     bool has_wifi_creds;       // True if SSID/Pass are configured
     char sub_status[128];      // "Starting WiFi...", "Device configured!"
@@ -30,16 +30,23 @@ typedef struct {
     bool fault_active;         // Triggers inverse video/alert view
 
     // --- Raw Protocol Data (For Telemetry) ---
-    int16_t raw_avg_tilt;
-    int16_t raw_max_tilt;
-    uint8_t raw_balance;
-    uint8_t raw_health_score;
+    float scaled_vibration;    // New: Vibration in deg/s (scaled from raw)
+    int16_t raw_vibration;
+    int16_t ele_speed;         // New: Speed in mm/s
+    uint8_t raw_health_status; // New: Raw health status (STABLE, WARN, EMERGENCY)
+    uint8_t raw_motion_state;
+    
+    // Edge Node Status
     uint8_t raw_edge_health;
     uint8_t raw_edge_state;
     uint32_t raw_edge_uptime;
+    uint16_t raw_edge_error;   // New: Edge error code
+
+    // Fault History
     uint8_t last_fault_code;
     uint8_t last_fault_severity;
     int16_t last_fault_value;
+    uint16_t last_fault_timestamp; // New: Timestamp of fault
 } system_status_registry_t;
 
 /**
@@ -63,9 +70,10 @@ void system_registry_set_subtext(const char* text);
 /**
  * @brief Update WiFi and MQTT connectivity info
  * @param level Signal strength (0-4 bars)
+ * @param rssi Signal strength in dBm
  * @param connected MQTT connection status
  */
-void system_registry_update_wifi(int8_t level, bool connected);
+void system_registry_update_wifi(int8_t level, int8_t rssi, bool connected);
 
 /**
  * @brief Update Edge Node (Remote STM32) connection status
@@ -78,7 +86,7 @@ void system_registry_update_edge_status(bool connected);
  * @param motion Motion state string
  * @param balance Balance state string
  */
-void system_registry_update_motion(const char* motion, const char* balance);
+void system_registry_update_motion(const char* motion);
 
 /**
  * @brief Update elevator health status

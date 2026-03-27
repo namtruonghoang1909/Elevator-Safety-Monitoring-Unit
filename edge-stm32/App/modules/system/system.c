@@ -1,26 +1,23 @@
 /**
  * @file system.c
- * @brief System Controller implementation
+ * @brief System Controller implementation with Manual Arming support
  */
 
 #include "system.h"
+#include "heartbeat.h"
 #include "system_registry.h"
 #include "motion_monitor.h"
+#include "edge_telemetry.h"
 #include "watchdog_service.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "edge_logger.h"
+#include "main.h"
 
 // ─────────────────────────────────────────────
-// Private function prototypes
+// Private constants
 // ─────────────────────────────────────────────
-static void system_task(void *argument);
-
-// ─────────────────────────────────────────────
-// Private variables
-// ─────────────────────────────────────────────
-
-static TaskHandle_t systemTaskHandle = NULL;
+#define DEBOUNCE_DELAY_MS 50
 
 // ─────────────────────────────────────────────
 // Task Logic
@@ -28,40 +25,46 @@ static TaskHandle_t systemTaskHandle = NULL;
 
 static void system_task(void *argument) {
     TickType_t last_wake_time = xTaskGetTickCount();
+    bool last_button_state = true; // Pull-up: True is unpressed
+    bool is_armed = false;
+    bool services_started = false;
+
+    // 1. Initializations (Hardware ready, but no tasks/broadcasts yet)
+    edge_logger_print("ESMU READY");
+    edge_logger_print("PRESS TO START");
 
     for(;;) {
-        node_state_t current_state = system_registry_get_state();
-
-        switch (current_state) {
-            case NODE_STATE_INIT:
-                // Wait for sensors to be ready (handled by defaultTask sequence)
-                // For now, let's just wait 3 seconds and switch
-                if (xTaskGetTickCount() > pdMS_TO_TICKS(3000)) {
-                    system_registry_set_state(NODE_STATE_MONITORING);
-                    edge_logger_print("SYSTEM: MONITORING");
+        // 1. Button Polling & Debouncing (PA15 - MONITOR_ACTIVATE_BUTTON)
+        bool current_button_state = (HAL_GPIO_ReadPin(MONITOR_ACTIVATE_BUTTON_GPIO_Port, MONITOR_ACTIVATE_BUTTON_Pin) == GPIO_PIN_SET);
+        
+        if (last_button_state == true && current_button_state == false) {
+            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY_MS));
+            if (HAL_GPIO_ReadPin(MONITOR_ACTIVATE_BUTTON_GPIO_Port, MONITOR_ACTIVATE_BUTTON_Pin) == GPIO_PIN_RESET) {
+                
+                if (!services_started) {
+                    // FIRST PRESS: Perform calibration and launch background tasks
+                    system_start();
+                    services_started = true;
+                    is_armed = true;
+                } else {
+                    // SUBSEQUENT PRESSES: Toggle operational state
+                    is_armed = !is_armed;
                 }
-                break;
+                
+                system_registry_t reg;
+                system_registry_read(&reg);
+                reg.is_monitoring_active = is_armed;
+                reg.state = is_armed ? NODE_STATE_MONITORING : NODE_STATE_STANDBY;
+                system_registry_write(&reg);
 
-            case NODE_STATE_MONITORING:
-                // Check if motion monitor has detected a fault
-                system_registry_t data;
-                if (system_registry_read(&data)) {
-                    if (data.metrics.state == MOTION_STATE_SHAKING || 
-                        data.metrics.state == MOTION_STATE_FREE_FALL) {
-                        system_registry_set_state(NODE_STATE_EMERGENCY);
-                        edge_logger_print("!! EMERGENCY !!");
-                    }
+                if (is_armed) {
+                    edge_logger_print("SYSTEM ACTIVE");
+                } else {
+                    edge_logger_print("PAUSED - STANDBY");
                 }
-                break;
-
-            case NODE_STATE_EMERGENCY:
-                // Latch state, wait for external reset command (via CAN)
-                break;
-
-            case NODE_STATE_ERROR:
-                // Try recovery or wait for reset
-                break;
+            }
         }
+        last_button_state = current_button_state;
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(100));
     }
@@ -73,23 +76,38 @@ static void system_task(void *argument) {
 
 bool system_core_init(void) {
     if (!system_registry_init()) return false;
+    heartbeat_start();
     
-    // Initialize OLED Logger
     edge_logger_init(0x3C);
-    edge_logger_print("SYSTEM CORE INIT");
-    
-    return true;
+    motion_monitor_init();
+
+    BaseType_t ret = xTaskCreate(system_task, "SystemTask", 512, NULL, tskIDLE_PRIORITY + 1, NULL);
+    return (ret == pdPASS);
 }
 
-void system_start(void) {
-    // Start Services
-    if (!motion_monitor_init(NULL)) {
-        edge_logger_print("ERR: MPU INIT FAIL");
-    }
-    motion_monitor_start();
+bool system_start(void) {
+    edge_logger_print("CALIBRATING...");
+    edge_logger_print("DO NOT MOVE!");
     
-    watchdog_service_start();
+    motion_monitor_calibrate();
+    
+    edge_logger_print("CALIB DONE");
+    vTaskDelay(pdMS_TO_TICKS(500));
 
-    // Start Controller
-    xTaskCreate(system_task, "SystemTask", 512, NULL, tskIDLE_PRIORITY + 1, &systemTaskHandle);
+    // Start background work
+    bool ret = true;
+    ret = edge_telemetry_start();
+    if(ret != true){
+        edge_logger_print("tele start failed!");
+    }
+    ret = motion_monitor_start();
+        if(ret != true){
+        edge_logger_print("mm start failed!");
+    }
+    ret = watchdog_service_start();
+        if(ret != true){
+        edge_logger_print("wd start failed!");
+    }
+                    
+    return ret;
 }

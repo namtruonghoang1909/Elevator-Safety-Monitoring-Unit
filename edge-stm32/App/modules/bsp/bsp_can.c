@@ -4,6 +4,8 @@
  */
 
 #include "bsp_can.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -47,6 +49,7 @@ bsp_can_status_t bsp_can_init(void) {
 bsp_can_status_t bsp_can_send(uint32_t std_id, const uint8_t *data, uint8_t len) {
     CAN_TxHeaderTypeDef TxHeader;
     uint32_t TxMailbox;
+    uint32_t timeout_ms = 100;
 
     if (len > 8) return BSP_CAN_ERROR;
 
@@ -56,8 +59,12 @@ bsp_can_status_t bsp_can_send(uint32_t std_id, const uint8_t *data, uint8_t len)
     TxHeader.DLC = len;
     TxHeader.TransmitGlobalTime = DISABLE;
 
-    // Wait for a free mailbox (Simple blocking for BSP)
-    while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0);
+    // Wait for a free mailbox with timeout and yield to prevent starvation
+    while (HAL_CAN_GetTxMailboxesFreeLevel(&hcan) == 0) {
+        if (timeout_ms == 0) return BSP_CAN_TIMEOUT;
+        vTaskDelay(pdMS_TO_TICKS(1));
+        timeout_ms--;
+    }
 
     if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, (uint8_t*)data, &TxMailbox) != HAL_OK) {
         return BSP_CAN_ERROR;

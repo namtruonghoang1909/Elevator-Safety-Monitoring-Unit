@@ -26,17 +26,15 @@ void test_ele_health_packing(void) {
     ele_health_t packet;
     memset(&packet, 0, sizeof(packet));
     
-    // Test offsets implicitly by ensuring size is correct and fields fit
-    // This is more of a sanity check that we can access fields without crash/misalignment
-    packet.avg_tilt = 100;
-    packet.max_tilt = 200;
-    packet.balance = BALANCE_STATE_TILT_LEFT;
-    packet.health_score = 95;
+    packet.vibration = 100;
+    packet.speed = 200;
+    packet.motion_state = MOTION_STATE_MOVING_UP;
+    packet.health_status = HEALTH_STABLE;
     
-    TEST_ASSERT_EQUAL_INT16(100, packet.avg_tilt);
-    TEST_ASSERT_EQUAL_INT16(200, packet.max_tilt);
-    TEST_ASSERT_EQUAL_UINT8(BALANCE_STATE_TILT_LEFT, packet.balance);
-    TEST_ASSERT_EQUAL_UINT8(95, packet.health_score);
+    TEST_ASSERT_EQUAL_INT16(100, packet.vibration);
+    TEST_ASSERT_EQUAL_INT16(200, packet.speed);
+    TEST_ASSERT_EQUAL_UINT8(MOTION_STATE_MOVING_UP, packet.motion_state);
+    TEST_ASSERT_EQUAL_UINT8(HEALTH_STABLE, packet.health_status);
 }
 
 void test_ele_emergency_packing(void) {
@@ -45,11 +43,15 @@ void test_ele_emergency_packing(void) {
     
     packet.fault_code = FAULT_SHAKE;
     packet.severity = 5;
+    packet.motion_state = MOTION_STATE_MOVING_DOWN;
     packet.fault_value = 1234;
+    packet.timestamp = 5555;
     
     TEST_ASSERT_EQUAL_UINT8(FAULT_SHAKE, packet.fault_code);
     TEST_ASSERT_EQUAL_UINT8(5, packet.severity);
+    TEST_ASSERT_EQUAL_UINT8(MOTION_STATE_MOVING_DOWN, packet.motion_state);
     TEST_ASSERT_EQUAL_INT16(1234, packet.fault_value);
+    TEST_ASSERT_EQUAL_UINT16(5555, packet.timestamp);
 }
 
 void test_edge_heartbeat_packing(void) {
@@ -58,10 +60,14 @@ void test_edge_heartbeat_packing(void) {
     
     packet.edge_health = EDGE_HEALTH_OK;
     packet.edge_state = EDGE_STATE_RUNNING;
+    packet.health_status = HEALTH_STABLE;
+    packet.error_code = 12;
     packet.uptime_sec = 3600;
     
     TEST_ASSERT_EQUAL_UINT8(EDGE_HEALTH_OK, packet.edge_health);
     TEST_ASSERT_EQUAL_UINT8(EDGE_STATE_RUNNING, packet.edge_state);
+    TEST_ASSERT_EQUAL_UINT8(HEALTH_STABLE, packet.health_status);
+    TEST_ASSERT_EQUAL_UINT8(12, packet.error_code);
     TEST_ASSERT_EQUAL_UINT32(3600, packet.uptime_sec);
 }
 

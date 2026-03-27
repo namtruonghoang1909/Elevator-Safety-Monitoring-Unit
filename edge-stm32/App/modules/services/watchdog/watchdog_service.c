@@ -57,6 +57,7 @@ static void watchdog_task(void *argument) {
 // Global functions
 // ─────────────────────────────────────────────
 
-void watchdog_service_start(void) {
-    xTaskCreate(watchdog_task, "WatchdogTask", 256, NULL, tskIDLE_PRIORITY + 4, &watchdogTaskHandle);
+bool watchdog_service_start(void) {
+    BaseType_t ret = xTaskCreate(watchdog_task, "WatchdogTask", 256, NULL, tskIDLE_PRIORITY + 4, &watchdogTaskHandle);
+    return (ret == pdPASS);
 }

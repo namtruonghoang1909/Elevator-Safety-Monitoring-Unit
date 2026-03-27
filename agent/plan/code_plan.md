@@ -1,91 +1,49 @@
-# ESMU Edge Node (STM32) - System Registry & Whiteboard Architecture
+# Code Plan: Motion Monitor Refactoring (STM32 Edge Node)
 
-## Objective
-Implement a thread-safe "Whiteboard" (System Registry) architecture for the Edge Node. This design allows the `MotionMonitor` to publish high-frequency health data to a shared memory area, which the `DisplayService` and `CANService` can then consume at their own rates.
+## 1. Objective
+Refactor the existing `motion_monitor.c` into a modular, testable service and solve the noise/fluctuation issues in Z (acceleration), V (vibration), and S (health score/displacement).
 
----
+## 2. Structural Changes
+Move from a single file to a modular directory structure under `edge-stm32/App/modules/services/motion_monitor/`:
 
-## 1. The Whiteboard (System Registry)
-
-A central component (`system_registry.c`) will hold the current state of the elevator.
-
-### A. Shared Data Structure
-```c
-typedef struct {
-    motion_metrics_t metrics;    // Tilt, Acceleration, Health Score
-    mpu6050_scaled_data_t raw;   // Real-time G-forces
-    node_state_t state;          // INIT, MONITORING, EMERGENCY, ERROR
-    uint32_t last_update_tick;   // For watchdog/freshness checks
-} system_registry_t;
+```text
+motion_monitor/
+├── core/
+│   ├── motion_core.c         (Task loop & system integration)
+│   └── motion_core.h
+├── kinematics/
+│   ├── motion_kinematics.c   (Linear Z-accel & Speed estimation)
+│   └── motion_kinematics.h
+├── filters/
+│   ├── motion_filters.c      (EMA & Deadband algorithms)
+│   └── motion_filters.h
+├── abnormal_detector/
+│   ├── abnormal_detector.c   (Shake, FreeFall, Impact logic)
+│   └── abnormal_detector.h
+├── motion_monitor.c          (Public API Implementation)
+└── motion_monitor.h          (Public API Header)
 ```
 
-### B. Concurrency Control
-- **Mutex**: A single Mutex (`registry_mutex`) will protect the entire structure.
-- **APIs**:
-    - `registry_write(system_registry_t *data)`: Thread-safe update.
-    - `registry_read(system_registry_t *out_data)`: Thread-safe read.
+## 3. Algorithmic Improvements (Addressing Fluctuations)
 
----
+### A. Improved Calibration
+- Increase sample size (from 100 to 500 samples) to ensure a stable baseline.
 
-## 2. Task Architecture (Registry-Based)
+### B. Noise Suppression (Filters & Deadbands)
+- **Deadband Implementation**: Apply a small threshold (noise floor) to raw sensor data after calibration. If `|val| < threshold`, set `val = 0`. This suppresses the white noise of the MPU6050 when stationary.
+- **Dynamic EMA**: Tunable alpha to balance responsiveness vs stability.
 
-### A. Motion Task (The Writer)
-- **Rate**: 100Hz (10ms).
-- **Logic**:
-    1. Read MPU6050.
-    2. Process filters and detect states.
-    3. **Registry Write**: Update the Whiteboard with new metrics and raw data.
+### C. Z, V, S Stability
+- **Z (Linear Accel)**: Apply deadband filter to eliminate jitter in the acceleration vector at rest.
+- **V (Vibration)**: Apply deadband filter to gyro magnitude to ensure V=0 when stationary.
+- **S (Health Score)**: Derived from smoothed vibration (V), will stay at 100 when V is 0.
 
-### B. Display Task (The Reader)
-- **Rate**: 10Hz (100ms).
-- **Logic**:
-    1. **Registry Read**: Fetch the latest data from the Whiteboard.
-    2. Update SSD1306 OLED with the values retrieved.
+## 4. Implementation Steps
+1. **Module Creation**: Define headers and move logic from `motion_monitor.c` into specialized folders.
+2. **Filter Enhancement**: Add `motion_filter_deadband()` and `motion_filter_ema()`.
+3. **Task Logic**: Update the main loop to call modular functions sequentially.
+4. **Integration**: Update `system_registry` and `main.c` initialization to reflect the new structure.
 
-### C. System Task (The Orchestrator)
-- **Rate**: 10Hz (100ms).
-- **Logic**:
-    1. **Registry Read**: Check for emergencies or sensor timeouts.
-    2. Handle state transitions (e.g., INIT -> MONITORING).
-    3. (Future) Feed data from Registry into CAN packets.
-
----
-
-## 3. Initialization & Lifecycle
-
-### A. Sequence (in `main.c`)
-1. **BSP Init**: HW initialization.
-2. **System Core Init**:
-    - `system_registry_init()`: Create the Mutex and initialize the Whiteboard memory.
-    - `system_core_init()`: Create any additional IPC if needed.
-3. **System Start**: Spawn `MotionTask`, `DisplayTask`, and `SystemTask`.
-4. **Scheduler Start**: `osKernelStart()`.
-
----
-
-## 4. Implementation Roadmap
-
-### Phase 1: Registry Foundation
-- [ ] Create `system_registry.h` and `system_registry.c`.
-- [ ] Implement `registry_init`, `registry_read`, and `registry_write`.
-- [ ] Implement `system_core_init()` and `system_start()` in a new `system.c`.
-
-### Phase 2: Refactor Motion & Display
-- [ ] **Motion Monitor**:
-    - Strip all OLED calls.
-    - Implement `registry_write` at the end of each 100Hz loop.
-- [ ] **Display Service**:
-    - Create `display_service.c`.
-    - Implement `DisplayTask` to `registry_read` and draw the UI.
-
-### Phase 3: System Logic
-- [ ] Implement the 4-state FSM in `system.c` using the Registry as the source of truth.
-- [ ] Add watchdog logic: If `last_update_tick` is too old, set State to **ERROR**.
-
----
-
-## 5. Success Criteria
-- [ ] Multiple tasks can access elevator health data without race conditions.
-- [ ] Adding a new "consumer" (like CAN) is as simple as reading from the Whiteboard.
-- [ ] `main.c` is minimal and clean.
-- [ ] Hardware initialization occurs during the `INIT` state of the FSM.
+## 5. Verification Plan
+- **Stationary Test**: Confirm Z=0, V=0, S=100 (or stable values) when the board is flat and still.
+- **Shake Test**: Verify fault detection triggers correctly.

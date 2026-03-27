@@ -25,3 +25,8 @@
 - **Solution**: Refactored logic to decouple detections:
     - **Shake**: Now based strictly on Gyroscope magnitude (Angular velocity).
     - **Tilt**: Now based on Accelerometer magnitude, with a higher threshold and 3-axis offset calibration to "zero" the sensor to its mounted position.
+
+### [2026-03-24] ESP32 Build Failure: Missing `telemetry_service` Component
+- **Problem**: The ESP32 build failed with `Failed to resolve component 'telemetry_service' required by component 'motion_proxy': unknown name`.
+- **Cause**: The `telemetry` component directory was named `telemetry`, causing ESP-IDF to register it as `telemetry`. However, `motion_proxy` and other components expected `telemetry_service` as specified in their `CMakeLists.txt` and code (`telemetry_service.h`).
+- **Solution**: Renamed `gateway-esp32/components/services/communication/telemetry` to `telemetry_service` and updated `EXTRA_COMPONENT_DIRS` in the main `CMakeLists.txt`, as well as `REQUIRES` in `system` and `src` CMake files.
