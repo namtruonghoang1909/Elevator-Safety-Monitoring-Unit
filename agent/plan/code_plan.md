@@ -1,50 +1,49 @@
-# Code Plan: ESMU System Refactor & ST7789 Upgrade
+# Code Plan: Motion Monitor Refactoring (STM32 Edge Node)
 
-## I. Gateway ESP32 System Refactor (Functional Reorganization) [COMPLETED]
-Reorganize the `system` component into a functional folder structure where both header (`.h`) and source (`.c`) files are co-located.
+## 1. Objective
+Refactor the existing `motion_monitor.c` into a modular, testable service and solve the noise/fluctuation issues in Z (acceleration), V (vibration), and S (health score/displacement).
 
-### Phase 1: Directory Setup [x]
-### Phase 2: File Migration [x]
-### Phase 3: Build Configuration Update [x]
-### Phase 4: Code Update & Verification [x]
+## 2. Structural Changes
+Move from a single file to a modular directory structure under `edge-stm32/App/modules/services/motion_monitor/`:
 
----
+```text
+motion_monitor/
+├── core/
+│   ├── motion_core.c         (Task loop & system integration)
+│   └── motion_core.h
+├── kinematics/
+│   ├── motion_kinematics.c   (Linear Z-accel & Speed estimation)
+│   └── motion_kinematics.h
+├── filters/
+│   ├── motion_filters.c      (EMA & Deadband algorithms)
+│   └── motion_filters.h
+├── abnormal_detector/
+│   ├── abnormal_detector.c   (Shake, FreeFall, Impact logic)
+│   └── abnormal_detector.h
+├── motion_monitor.c          (Public API Implementation)
+└── motion_monitor.h          (Public API Header)
+```
 
-## II. SPI BSP (Board Support Package) Implementation
-Create a thread-safe SPI master abstraction layer for ESP32.
+## 3. Algorithmic Improvements (Addressing Fluctuations)
 
-### Tasks:
-- [ ] Create `gateway-esp32/components/bsp/spi_bsp/include/spi_bsp.h`.
-    - Define handle-based IDs for SPI buses and devices.
-    - API for bus initialization and device addition.
-    - API for command/data transfers (ST7789 needs DC pin control).
-- [ ] Create `gateway-esp32/components/bsp/spi_bsp/spi_bsp.c`.
-    - Implement ESP-IDF SPI Master driver wrapper.
-    - Handle GPIO configurations for DC, RST pins if needed via abstraction.
-- [ ] Create `gateway-esp32/components/bsp/spi_bsp/CMakeLists.txt`.
+### A. Improved Calibration
+- Increase sample size (from 100 to 500 samples) to ensure a stable baseline.
 
----
+### B. Noise Suppression (Filters & Deadbands)
+- **Deadband Implementation**: Apply a small threshold (noise floor) to raw sensor data after calibration. If `|val| < threshold`, set `val = 0`. This suppresses the white noise of the MPU6050 when stationary.
+- **Dynamic EMA**: Tunable alpha to balance responsiveness vs stability.
 
-## III. ST7789 SPI Driver Implementation
-Implement the driver for the 240x240 (or similar) color TFT display.
+### C. Z, V, S Stability
+- **Z (Linear Accel)**: Apply deadband filter to eliminate jitter in the acceleration vector at rest.
+- **V (Vibration)**: Apply deadband filter to gyro magnitude to ensure V=0 when stationary.
+- **S (Health Score)**: Derived from smoothed vibration (V), will stay at 100 when V is 0.
 
-### Tasks:
-- [ ] Create `gateway-esp32/components/drivers/st7789/include/st7789.h`.
-- [ ] Create `gateway-esp32/components/drivers/st7789/st7789.c`.
-    - Implement initialization sequence (SW reset, Wake up, Color mode, Pixel format).
-    - Implement basic primitives (fill_screen, draw_pixel, draw_rect).
-    - Implement framebuffer or partial window updates for efficiency.
-- [ ] Create `gateway-esp32/components/drivers/st7789/CMakeLists.txt`.
+## 4. Implementation Steps
+1. **Module Creation**: Define headers and move logic from `motion_monitor.c` into specialized folders.
+2. **Filter Enhancement**: Add `motion_filter_deadband()` and `motion_filter_ema()`.
+3. **Task Logic**: Update the main loop to call modular functions sequentially.
+4. **Integration**: Update `system_registry` and `main.c` initialization to reflect the new structure.
 
----
-
-## IV. Display Service Migration
-Update the `display_service` to support ST7789 and potentially handle color UI.
-
-### Tasks:
-- [ ] Refactor `display_service.c` to use an abstraction for different display types (SSD1306 vs ST7789).
-- [ ] Implement a basic "Dashboard" UI for ST7789 showing CAN metrics and node status.
-- [ ] Verify both SSD1306 and ST7789 functionality.
-
----
-*Plan Updated: March 22, 2026*
+## 5. Verification Plan
+- **Stationary Test**: Confirm Z=0, V=0, S=100 (or stable values) when the board is flat and still.
+- **Shake Test**: Verify fault detection triggers correctly.

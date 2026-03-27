@@ -204,3 +204,18 @@ This log summarizes the development of the Elevator Safety Monitoring Unit (ESMU
         - Implemented `get_fault_msg()` in `telemetry_service.c` to map fault codes (e.g., 3 -> "EMERGENCY STOP") directly to the MQTT `ele_fault_msg` field, bypassing the shared `sub_status`.
 - **Result**: Cleaner telemetry payloads and guaranteed accuracy for fault reporting in the cloud.
 
+### 21. WiFi RSSI & Scaled Vibration Telemetry (March 27, 2026)
+- **What**: Modified the ESP32 Gateway to publish raw WiFi RSSI (dBm) and scaled vibration (float, deg/s) instead of signal bars and protocol-packed integers.
+- **Where**: 
+    - `gateway-esp32/components/system/registry/system_registry.h/c`
+    - `gateway-esp32/components/services/connectivity/connectivity_manager/connectivity_manager.c`
+    - `gateway-esp32/components/services/communication/telemetry_service/telemetry_service.c`
+- **Why**: MQTT telemetry was publishing WiFi signal bars (0-4) and unscaled vibration data (integer mg*100), which were insufficient for high-resolution cloud visualization in CoreIOT.
+- **Fixes**: 
+    - Updated `system_status_registry_t` to include `wifi_rssi` (int8_t) and `scaled_vibration` (float).
+    - Modified `connectivity_manager.c` to report raw RSSI to the registry.
+    - Updated `system_registry_update_from_protocol_health` to calculate `scaled_vibration` from CAN packets (dividing by 100.0f).
+    - Modified `telemetry_service.c` to publish `gw_wifi_rssi` as raw dBm and `ele_vibration` as a float (`%.2f`) in deg/s.
+    - **Fix (Stability)**: Zero-initialized `wifi_config_t` in `wifi_manager.c` to prevent latent connection issues caused by stack garbage/structure alignment changes.
+- **Result**: CoreIOT now receives high-fidelity signal strength and motion data for better visualization. Verified with a successful project build.
+
