@@ -16,6 +16,8 @@ typedef struct __attribute__((packed)) {
     int16_t vibration;        /**< Vibration magnitude (mg * 100) */
     int16_t speed;            /**< Elevator speed (mm/s or scaled) */
     uint8_t motion_state;     /**< motion_state_t (IDLE, UP, DOWN, STOP) */
+    uint8_t health_status;    /**< health_status_t (STABLE, WARN, EMERGENCY) */
+    uint16_t reserved;        /**< Padding to 8 bytes */
 } ele_health_t;
 
 
@@ -27,6 +29,7 @@ typedef struct __attribute__((packed)) {
     uint8_t fault_code;       /**< fault_code_t */
     uint8_t severity;         /**< Severity level (1–5) */
     uint8_t motion_state;     /**< Context: motion_state_t */
+    uint8_t reserved;         /**< Padding to 8 bytes */
     int16_t fault_value;      /**< Sensor value that triggered fault */
     uint16_t timestamp;       /**< Relative time (ms or tick count) */
 } ele_emergency_t;
@@ -39,7 +42,8 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     uint8_t edge_health;      /**< edge_health_t (OK, WARN, ERROR) */
     uint8_t edge_state;       /**< edge_state_t (INIT, RUNNING, ERROR) */
-    uint16_t error_code;      /**< Detailed error code (0 = no error) */
+    uint8_t health_status;    /**< health_status_t (STABLE, WARNING, EMERGENCY) */
+    uint8_t error_code;       /**< Detailed error code (0 = no error) */
     uint32_t uptime_sec;      /**< Uptime since boot (seconds) */
 } edge_heartbeat_t;
 

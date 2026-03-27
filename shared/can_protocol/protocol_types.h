@@ -12,6 +12,7 @@
  */
 typedef enum {
     EDGE_STATE_INIT = 0,      /**< Node is initializing or calibrating sensors */
+    EDGE_STATE_IDLE,          /**< Node is in standby (Ready to Arm) */
     EDGE_STATE_RUNNING,       /**< Node is actively monitoring and healthy */
     EDGE_STATE_ERROR          /**< Node has encountered a critical hardware error */
 } edge_state_t;
