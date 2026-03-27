@@ -34,7 +34,7 @@ typedef struct {
 /**
  * @brief Initialize motion monitor
  */
-bool motion_monitor_init(const motion_monitor_config_t *cfg);
+bool motion_monitor_init(void);
 
 /**
  * @brief Start the internal FreeRTOS task

@@ -17,21 +17,10 @@
 // ─────────────────────────────────────────────
 
 /**
- * @brief Initialize the telemetry service
- * @return true if initialization successful
- */
-bool edge_telemetry_init(void);
-
-/**
  * @brief Start the periodic telemetry task
  * @return true if task created successfully
  */
 bool edge_telemetry_start(void);
-
-/**
- * @brief Immediately send elevator health status packet
- */
-void edge_telemetry_send_health_now(void);
 
 /**
  * @brief Broadcast an immediate emergency message
