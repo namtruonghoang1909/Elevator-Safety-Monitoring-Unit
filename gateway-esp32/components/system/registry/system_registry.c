@@ -50,9 +50,10 @@ void system_registry_set_subtext(const char* text) {
     }
 }
 
-void system_registry_update_wifi(int8_t level, bool connected) {
+void system_registry_update_wifi(int8_t level, int8_t rssi, bool connected) {
     if (LOCK_REG()) {
         g_registry.wifi_level = level;
+        g_registry.wifi_rssi = rssi;
         g_registry.mqtt_connected = connected;
         UNLOCK_REG();
     }
@@ -104,10 +105,12 @@ void system_registry_get_snapshot(system_status_registry_t *out) {
 void system_registry_update_from_protocol_health(const ele_health_t *pkt) {
     if (!pkt || !LOCK_REG()) return;
 
-    // Store raw values
+    // Store raw and scaled values
     g_registry.raw_vibration = pkt->vibration;
+    g_registry.scaled_vibration = (float)pkt->vibration / 100.0f;
     g_registry.ele_speed = pkt->speed;
     g_registry.raw_motion_state = pkt->motion_state;
+    g_registry.raw_health_status = pkt->health_status;
 
     // Map Motion State
     switch (pkt->motion_state) {
@@ -119,17 +122,28 @@ void system_registry_update_from_protocol_health(const ele_health_t *pkt) {
         default: strncpy(g_registry.motion_state, "UNKNOWN", 15); break;
     }
 
-    // Infer Health Status from Telemetry (Simple Thresholds)
-    // If we are not in a latched fault state, we update health based on vibration
-    if (!g_registry.fault_active) {
-        if (pkt->vibration > 100) { // Arbitrary threshold for "Warning" (100mg)
-            strncpy(g_registry.elevator_health, "WARNING", 15);
-        } else {
+    // Map Health Status from Protocol
+    switch (pkt->health_status) {
+        case HEALTH_STABLE:
             strncpy(g_registry.elevator_health, "GOOD", 15);
+            // If the Edge node says stable, we can clear our local fault flag
+            // (Assuming the Edge node only sends STABLE if the fault is gone)
+            g_registry.fault_active = false;
             if (g_registry.current_state == SYSTEM_STATE_ERROR) {
                 g_registry.current_state = SYSTEM_STATE_MONITORING;
             }
-        }
+            break;
+        case HEALTH_WARNING:
+            strncpy(g_registry.elevator_health, "WARNING", 15);
+            break;
+        case HEALTH_EMERGENCY:
+            strncpy(g_registry.elevator_health, "CRITICAL", 15);
+            g_registry.fault_active = true;
+            g_registry.current_state = SYSTEM_STATE_ERROR;
+            break;
+        default:
+            strncpy(g_registry.elevator_health, "UNKNOWN", 15);
+            break;
     }
 
     UNLOCK_REG();

@@ -41,14 +41,14 @@ static void init_hardware_gpios(void) {
     gpio_config(&btn_conf);
 
     gpio_config_t led_conf = {
-        .pin_bit_mask = (1ULL << CONFIG_PIN_STATUS_LED),
+        .pin_bit_mask = (1ULL << CONFIG_PIN_CONFIG_LED),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE
     };
     gpio_config(&led_conf);
-    gpio_set_level(CONFIG_PIN_STATUS_LED, 0);
+    gpio_set_level(CONFIG_PIN_CONFIG_LED, 0);
 }
 
 /**
@@ -124,7 +124,7 @@ static void connectivity_manager_task(void *pvParameters)
                     ESP_LOGW(TAG, "Button held for 5s. Switching back to Station Mode...");
                     web_server_stop();
                     wifi_manager_stop();
-                    gpio_set_level(CONFIG_PIN_STATUS_LED, 0);
+                    gpio_set_level(CONFIG_PIN_CONFIG_LED, 0);
                     vTaskDelay(pdMS_TO_TICKS(500));
                     
                     wifi_manager_init(&s_config.wifi_config);
@@ -143,7 +143,7 @@ static void connectivity_manager_task(void *pvParameters)
         if (!provisioned) {
             // Blink LED (GPIO 4)
             led_state = !led_state;
-            gpio_set_level(CONFIG_PIN_STATUS_LED, led_state);
+            gpio_set_level(CONFIG_PIN_CONFIG_LED, led_state);
 
             char new_ssid[33] = {0}, new_pass[64] = {0};
             if (web_server_get_credentials(new_ssid, new_pass)) {
@@ -152,7 +152,7 @@ static void connectivity_manager_task(void *pvParameters)
                 
                 web_server_stop();
                 wifi_manager_stop();
-                gpio_set_level(CONFIG_PIN_STATUS_LED, 0); 
+                gpio_set_level(CONFIG_PIN_CONFIG_LED, 0); 
 
                 static char static_ssid[33], static_pass[64];
                 strncpy(static_ssid, new_ssid, 32);
@@ -210,7 +210,7 @@ static void connectivity_manager_task(void *pvParameters)
                     }
                     rssi = connectivity_manager_get_rssi();
                 }
-                system_registry_update_wifi(wifi_connected ? rssi_to_bars(rssi) : 0, mqtt_connected);
+                system_registry_update_wifi(wifi_connected ? rssi_to_bars(rssi) : 0, rssi, mqtt_connected);
             }
         }
 

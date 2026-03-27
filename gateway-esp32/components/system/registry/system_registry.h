@@ -19,6 +19,7 @@
 typedef struct {
     system_state_id_t current_state;
     int8_t wifi_level;         // 0-4 bars
+    int8_t wifi_rssi;          // Raw RSSI in dBm
     bool mqtt_connected;
     bool edge_node_connected;  // Status of the remote STM32 node
     char motion_state[16];     // "IDLE", "UP", "DOWN"
@@ -29,9 +30,10 @@ typedef struct {
     bool fault_active;         // Triggers inverse video/alert view
 
     // --- Raw Protocol Data (For Telemetry) ---
+    float scaled_vibration;    // New: Vibration in deg/s (scaled from raw)
     int16_t raw_vibration;
     int16_t ele_speed;         // New: Speed in mm/s
-    uint8_t raw_health_score;
+    uint8_t raw_health_status; // New: Raw health status (STABLE, WARN, EMERGENCY)
     uint8_t raw_motion_state;
     
     // Edge Node Status
@@ -68,9 +70,10 @@ void system_registry_set_subtext(const char* text);
 /**
  * @brief Update WiFi and MQTT connectivity info
  * @param level Signal strength (0-4 bars)
+ * @param rssi Signal strength in dBm
  * @param connected MQTT connection status
  */
-void system_registry_update_wifi(int8_t level, bool connected);
+void system_registry_update_wifi(int8_t level, int8_t rssi, bool connected);
 
 /**
  * @brief Update Edge Node (Remote STM32) connection status
