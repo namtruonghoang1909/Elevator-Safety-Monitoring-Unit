@@ -54,6 +54,28 @@ The ESMU utilizes a **Dual-Node Distributed Architecture** connected via an indu
 
 ## 📂 Repository Structure
 
+The project is architected as a **Dual-Node Distributed System** connected via an industrial-grade **CAN 2.0A** bus:
+
+- **[Gateway Node] ESP32 (ESP-IDF/FreeRTOS)**: Acts as the system supervisor. Manages high-level connectivity (WiFi/MQTT), the local OLED UI dashboard, and a SoftAP web portal for provisioning.
+- **[Edge Node] STM32F103 (HAL/FreeRTOS)**: The real-time sensor processing hub. Interfaces with the MPU6050 IMU, performs high-frequency filtering (EMA), and executes fault detection logic.
+- **[Shared Protocol] C-Headers**: A unified protocol definition (`esmu_protocol.h`) ensuring binary compatibility and structured frame exchange between the ESP32 and STM32.
+
+## 🚀 Core Features
+- **Distributed Sensing**: High-frequency (100Hz) IMU sampling and EMA (Exponential Moving Average) filtering on the STM32 Edge node.
+- **Robust Communication**: Reliable inter-MCU data exchange over **CAN 2.0A** (500kbps) with custom ID priority (Emergency > Health > Heartbeat).
+- **Interactive UI**: Layered SSD1306 OLED architecture on the Gateway, featuring real-time motion visualization, tilt-alerts, and status icons.
+- **Smart Connectivity**:
+  - **WiFi Provisioning**: Built-in SoftAP captive portal (`192.168.4.1`) for dynamic credential configuration.
+  - **MQTT Telemetry**: Asynchronous publishing of elevator metrics and "Critical Alert" states to a Core IoT dashboard.
+- **Industrial Stability**: Thread-safe **Board Support Packages (BSP)** using FreeRTOS Mutexes for shared bus (I2C/SPI/CAN) access.
+
+## 🛠️ Hardware Stack
+- **MCUs**: ESP32-WROOM-32, STM32F103C8T6 (BluePill).
+- **Sensors**: MPU6050 (6-axis Accel/Gyro).
+- **Display**: SSD1306, ST7789.
+- **Communication**: MCP2551 CAN Transceivers.
+
+## 📂 Project Structure
 ```text
 ├── agent/                # AI Agent context, rules, and project roadmap
 ├── edge-stm32/           # STM32 Edge Node firmware (MPU6050 + CAN)
