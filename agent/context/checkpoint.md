@@ -1,30 +1,26 @@
-# Session Checkpoint - March 31, 2026
+# Session Checkpoint - March 31, 2026 (Final)
 
 ## Current Working Context
-- **Driver Verification**: `main.c` has been updated with a sequential state machine to test `sim_a7680c` APIs:
-    1. Hardware Reset
-    2. Info Retrieval (IMEI/IMSI/Phone Number)
-    3. Network Registration (CREG/CEREG)
-    4. SMS Send
-    5. Voice Call
-    6. Continuous Monitoring
-- **Fixes Applied**:
-    - Improved `wait_for_terminal` to discard `*ATREADY`, `SMS READY`, and any lines starting with `AT` (Echoes).
-    - Added `memset` to initialize `sim_a7680c_info_t` to prevent garbage output.
-    - Implemented `AT+CNUM` parsing to retrieve the SIM mobile number.
-    - Added `sim_a7680c_check_status()` for deep diagnostics (CPIN, CFUN, Detailed Registration).
-- **Build Status**: Project `gateway-esp32` builds successfully with the new test suite.
-- **Service Design**: Designed the FSM and recovery logic for the upcoming `cellular_service` in `agent/plan/idea.md`.
+- **SIM Driver Refactor**: Completed and verified (software logic). Fixed echo interference, URC noise, and robustly implemented IMEI/IMSI/Phone Number retrieval.
+- **Hardware Status**: Identified a power brownout issue (10s reboot loop) caused by powering the SIM module from ESP32 Vin. Recommended external 5V/2A supply.
+- **Commits**: Organized the work into 6 module-based commits:
+    1. `feat(gateway/bsp)`: Thread-safe UART and board pins.
+    2. `feat(gateway/drivers)`: SIM A7680C driver with filtering.
+    3. `feat(gateway/system)`: Hardware boot integration.
+    4. `docs(agent)`: Roadmap and design ideas.
+    5. `docs(edge)`: Missing STM32 module docs.
+    6. `docs(gateway/services)`: Service layer overview.
 
 ## Completed
-1. Refined `main.c` for sequential driver testing.
-2. Verified build integrity using PlatformIO.
-3. Documented `cellular_service` FSM, recovery strategies, and API surface.
+1. Refined `sim_a7680c` driver with advanced `wait_for_terminal`.
+2. Implemented `AT+CNUM` for phone number retrieval.
+3. Designed `cellular_service` state machine.
+4. Cleaned up `main.c` for production.
+5. All changes committed to `feature/driver/a7670c`.
 
 ## Pending
-1. **Hardware Verification**: Flash `gateway-esp32` and observe logs for the full test suite execution.
-2. **Analysis**: Based on test results, adjust the `cellular_service` design if needed (e.g., if registration takes longer than expected).
-3. **Implementation**: Once driver is 100% verified, begin implementing the `cellular_service` component.
+1. **Hardware Power Fix**: Power the SIM module with 5V/2A and common ground to achieve registration.
+2. **Cellular Service Implementation**: Build the background task based on the designed FSM in `idea.md`.
 
 ## Next Step
-Flash the firmware and monitor the serial output to verify driver reliability in real-world conditions.
+Implement the `cellular_service` once hardware registration is confirmed with external power.
