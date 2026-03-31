@@ -1,49 +1,39 @@
-# Code Plan: Motion Monitor Refactoring (STM32 Edge Node)
+
+
+# Code Plan: SIM A7680C Integration (ESP32 Gateway Node)
 
 ## 1. Objective
-Refactor the existing `motion_monitor.c` into a modular, testable service and solve the noise/fluctuation issues in Z (acceleration), V (vibration), and S (health score/displacement).
+Implement a robust UART-based driver for the SIM A7680C module to enable LTE connectivity and SMS alerts.
 
-## 2. Structural Changes
-Move from a single file to a modular directory structure under `edge-stm32/App/modules/services/motion_monitor/`:
+## 2. Implementation Steps (TODO)
 
-```text
-motion_monitor/
-├── core/
-│   ├── motion_core.c         (Task loop & system integration)
-│   └── motion_core.h
-├── kinematics/
-│   ├── motion_kinematics.c   (Linear Z-accel & Speed estimation)
-│   └── motion_kinematics.h
-├── filters/
-│   ├── motion_filters.c      (EMA & Deadband algorithms)
-│   └── motion_filters.h
-├── abnormal_detector/
-│   ├── abnormal_detector.c   (Shake, FreeFall, Impact logic)
-│   └── abnormal_detector.h
-├── motion_monitor.c          (Public API Implementation)
-└── motion_monitor.h          (Public API Header)
-```
+### Phase 1: UART BSP
+- [ ] Create `gateway-esp32/components/bsp/uart_bsp/include/uart_bsp.h`.
+- [ ] Implement `gateway-esp32/components/bsp/uart_bsp/uart_bsp.c`.
+    - [ ] Initialize UART2 (default for SIM module).
+    - [ ] Implement thread-safe `uart_bsp_write()` and `uart_bsp_read_line()`.
+    - [ ] Implement background task for URC monitoring (Unsolicited Result Codes).
 
-## 3. Algorithmic Improvements (Addressing Fluctuations)
+### Phase 2: A7680C Core Driver
+- [ ] Create `gateway-esp32/components/drivers/a7680c/`.
+- [ ] Implement command/response parser with timeout handling.
+- [ ] Implement module lifecycle management:
+    - [ ] `a7680c_hw_power_on()` (Pulse PWR_KEY).
+    - [ ] `a7680c_init()` (Sync baud rate, disable echo).
+    - [ ] `a7680c_check_status()` (SIM card, Network registration).
 
-### A. Improved Calibration
-- Increase sample size (from 100 to 500 samples) to ensure a stable baseline.
+### Phase 3: Telemetry & SMS Services
+- [ ] Implement SMS API: `a7680c_send_sms(const char* phone, const char* msg)`.
+- [ ] Implement LTE-based MQTT (using module's internal stack):
+    - [ ] `a7680c_mqtt_connect()`, `a7680c_mqtt_publish()`.
 
-### B. Noise Suppression (Filters & Deadbands)
-- **Deadband Implementation**: Apply a small threshold (noise floor) to raw sensor data after calibration. If `|val| < threshold`, set `val = 0`. This suppresses the white noise of the MPU6050 when stationary.
-- **Dynamic EMA**: Tunable alpha to balance responsiveness vs stability.
+### Phase 4: Connectivity Manager Integration
+- [ ] Refactor `connectivity_manager.c` to support "Connectivity Priority" (WiFi > LTE).
+- [ ] Implement failover logic: If `WIFI_DISCONNECTED`, attempt `LTE_ATTACH`.
+- [ ] Update `system_registry` to include LTE signal bars and carrier name.
 
-### C. Z, V, S Stability
-- **Z (Linear Accel)**: Apply deadband filter to eliminate jitter in the acceleration vector at rest.
-- **V (Vibration)**: Apply deadband filter to gyro magnitude to ensure V=0 when stationary.
-- **S (Health Score)**: Derived from smoothed vibration (V), will stay at 100 when V is 0.
-
-## 4. Implementation Steps
-1. **Module Creation**: Define headers and move logic from `motion_monitor.c` into specialized folders.
-2. **Filter Enhancement**: Add `motion_filter_deadband()` and `motion_filter_ema()`.
-3. **Task Logic**: Update the main loop to call modular functions sequentially.
-4. **Integration**: Update `system_registry` and `main.c` initialization to reflect the new structure.
-
-## 5. Verification Plan
-- **Stationary Test**: Confirm Z=0, V=0, S=100 (or stable values) when the board is flat and still.
-- **Shake Test**: Verify fault detection triggers correctly.
+## 3. Verification & Testing
+- [ ] **Unit Test (UART)**: Loopback TX/RX test.
+- [ ] **AT Command Test**: Send `AT`, expect `OK`.
+- [ ] **SMS Test**: Verify SMS received on a physical phone during simulated fault.
+- [ ] **Failover Test**: Turn off WiFi and verify MQTT telemetry continues via LTE.

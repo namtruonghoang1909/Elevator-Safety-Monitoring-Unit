@@ -34,6 +34,11 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 - **Connectivity Manager**
   - [x] Implementation: Orchestration of WiFi and MQTT.
   - [x] Verification: End-to-end telemetry tests.
+- **SIM A7680C Driver**
+  - [x] Implementation: Generic UART BSP Integration, Line Buffering.
+  - [x] Implementation: Signal strength parsing (CSQ).
+  - [x] Implementation: Registration & Operator parsing (CREG, COPS).
+  - [ ] Verification: Network status monitoring.
 
 ---
 

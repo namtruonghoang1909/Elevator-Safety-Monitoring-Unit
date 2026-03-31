@@ -1,19 +1,40 @@
 /**
  * @file main.c
- * @brief ESMU CAN Playground - Minimal Monitor
+ * @brief ESMU Gateway Entry Point
+ * 
+ * This file initializes the core hardware and services for the ESMU Gateway.
  */
 
 #include "esp_log.h"
-#include "system.h"
-#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "system_hw.h"
+#include "sim_a7680c.h"
 
-static const char *TAG = "MAIN";
+static const char *TAG = "ESMU_GATEWAY";
 
 void app_main(void) {
-    ESP_LOGI(TAG, "ESMU Starting...");
+    ESP_LOGI(TAG, "Initializing ESMU Gateway...");
 
-    // 0. Start System Controller and Services
-    ESP_ERROR_CHECK(system_start());
+    // 1. Initialize System Hardware (UART, I2C, GPIOs)
+    if (system_hw_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Hardware Initialization FAILED!");
+        return;
+    }
 
-    ESP_LOGI(TAG, "Monitor Ready. System managed by Supervisor Task.");
+    // 2. Initialize SIM A7680C Driver
+    // Note: Hardware reset and sync are performed during init
+    sim_a7680c_hw_reset();
+    if (sim_a7680c_init() != ESP_OK) {
+        ESP_LOGW(TAG, "SIM Module not responding or not present.");
+    } else {
+        ESP_LOGI(TAG, "SIM Driver initialized successfully.");
+    }
+
+    ESP_LOGI(TAG, "System ready. Entering main service loop...");
+
+    while (1) {
+        // Placeholder for future Service Orchestration (Connectivity Manager, etc.)
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }

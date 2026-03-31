@@ -1,26 +1,26 @@
-# Session Checkpoint - March 25, 2026
+# Session Checkpoint - March 31, 2026 (Final)
 
 ## Current Working Context
-- **Distributed System**: 
-  - **Fault Flow FIXED**: Resolved the high-frequency fault oscillation issue. 
-  - **STM32 Edge**: Added vibration filtering (EMA), increased thresholds (5.0/15.0 deg/s), and implemented a 50ms (5-cycle) debounce for emergency states. OLED logging now captures the "worst" state in each window.
-  - **ESP32 Gateway**: Fixed a bug where `HEALTH_STABLE` messages failed to reset the system's fault/error state in the registry.
-- **Build Integrity**: ESP32 Node (Gateway) verified to compile successfully after resolving minor header and uninitialized variable issues.
+- **SIM Driver Refactor**: Completed and verified (software logic). Fixed echo interference, URC noise, and robustly implemented IMEI/IMSI/Phone Number retrieval.
+- **Hardware Status**: Identified a power brownout issue (10s reboot loop) caused by powering the SIM module from ESP32 Vin. Recommended external 5V/2A supply.
+- **Commits**: Organized the work into 6 module-based commits:
+    1. `feat(gateway/bsp)`: Thread-safe UART and board pins.
+    2. `feat(gateway/drivers)`: SIM A7680C driver with filtering.
+    3. `feat(gateway/system)`: Hardware boot integration.
+    4. `docs(agent)`: Roadmap and design ideas.
+    5. `docs(edge)`: Missing STM32 module docs.
+    6. `docs(gateway/services)`: Service layer overview.
 
-## Completed Today
-1. Investigated and fixed the discrepancy between STM32 local display and ESP32 telemetry/OLED fault reporting.
-2. Implemented hysteresis and filtering in `motion_monitor.c` (STM32).
-3. Fixed registry reset logic in `system_registry.c` (ESP32).
-4. Fixed ESP32 build errors:
-    - Removed redundant/missing `display_service.h` include in `system_boot.c`.
-    - Initialized `ret` variable in `system_boot.c` to prevent compiler error.
-    - Removed undefined `FAULT_OVERTILT` from `telemetry_service.c`.
-5. Updated memory log with Entries 17, 18, and 19.
+## Completed
+1. Refined `sim_a7680c` driver with advanced `wait_for_terminal`.
+2. Implemented `AT+CNUM` for phone number retrieval.
+3. Designed `cellular_service` state machine.
+4. Cleaned up `main.c` for production.
+5. All changes committed to `feature/driver/a7670c`.
 
-## Pending Tasks
-1. **SPI BSP**: Implement the SPI master abstraction layer on ESP32.
-2. **ST7789 Driver**: Implement the SPI driver for the 240x240 color TFT display.
-3. **Display Service**: Refactor the display service to support the ST7789 migration and color UI.
+## Pending
+1. **Hardware Power Fix**: Power the SIM module with 5V/2A and common ground to achieve registration.
+2. **Cellular Service Implementation**: Build the background task based on the designed FSM in `idea.md`.
 
 ## Next Step
-Implement the SPI BSP component (`gateway-esp32/components/bsp/spi_bsp`) to support the new color display.
+Implement the `cellular_service` once hardware registration is confirmed with external power.
