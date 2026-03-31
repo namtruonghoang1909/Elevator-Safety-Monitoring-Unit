@@ -38,7 +38,7 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Implementation: Generic UART BSP Integration, Line Buffering.
   - [x] Implementation: Signal strength parsing (CSQ).
   - [x] Implementation: Registration & Operator parsing (CREG, COPS).
-  - [ ] Verification: Network status monitoring.
+  - [x] Verification: Network status monitoring (via Cellular Service).
 
 ---
 
@@ -50,6 +50,10 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Maintenance: Gyro-based vibration analysis (LOW/WARN/CRIT).
   - [x] Safety: Free Fall (<0.35g) and Sudden Impact (>1.6g).
   - [x] Verification: Signal integrity and real-world ride quality. [COMPLETE]
+- **Cellular Service**
+  - [x] Implementation: Background FSM (Idle, Init, Search, Ready, Recover).
+  - [x] Integration: System Registry updates for UI/Telemetry.
+  - [ ] Verification: Real-world network registration (Pending HW Power Fix).
 - **Display Service**
   - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
   - [x] Edge Logger (Diagnostic OLED Mode) - **ACTIVE**.

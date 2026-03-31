@@ -1,26 +1,21 @@
-# Session Checkpoint - March 31, 2026 (Final)
+# Session Checkpoint - March 31, 2026 (Cellular Service Implementation)
 
 ## Current Working Context
-- **SIM Driver Refactor**: Completed and verified (software logic). Fixed echo interference, URC noise, and robustly implemented IMEI/IMSI/Phone Number retrieval.
-- **Hardware Status**: Identified a power brownout issue (10s reboot loop) caused by powering the SIM module from ESP32 Vin. Recommended external 5V/2A supply.
-- **Commits**: Organized the work into 6 module-based commits:
-    1. `feat(gateway/bsp)`: Thread-safe UART and board pins.
-    2. `feat(gateway/drivers)`: SIM A7680C driver with filtering.
-    3. `feat(gateway/system)`: Hardware boot integration.
-    4. `docs(agent)`: Roadmap and design ideas.
-    5. `docs(edge)`: Missing STM32 module docs.
-    6. `docs(gateway/services)`: Service layer overview.
+- **Cellular Service**: Implemented as a background FreeRTOS task. It manages the SIM A7680C lifecycle through an FSM (IDLE -> INITIALIZING -> SEARCHING -> READY).
+- **System Registry**: Updated to include cellular status (registration, signal bars, RSSI, operator).
+- **Build Status**: Project builds successfully with the new service.
 
 ## Completed
-1. Refined `sim_a7680c` driver with advanced `wait_for_terminal`.
-2. Implemented `AT+CNUM` for phone number retrieval.
-3. Designed `cellular_service` state machine.
-4. Cleaned up `main.c` for production.
-5. All changes committed to `feature/driver/a7670c`.
+1. Modified `system_status_registry_t` to include cellular fields.
+2. Implemented `system_registry_update_cellular` in `system_registry.c`.
+3. Created `cellular_service` component with FSM logic and high-level SMS/Call APIs.
+4. Integrated `cellular_service` into `main.c`.
+5. Updated `CMakeLists.txt` for component discovery and requirements.
 
 ## Pending
 1. **Hardware Power Fix**: Power the SIM module with 5V/2A and common ground to achieve registration.
-2. **Cellular Service Implementation**: Build the background task based on the designed FSM in `idea.md`.
+2. **Network Verification**: Once hardware is powered correctly, verify the `SEARCHING -> READY` transition in logs.
+3. **Emergency Alert Integration**: Connect `cellular_service_send_sms` to the `fault_detector` or `system_controller`.
 
 ## Next Step
-Implement the `cellular_service` once hardware registration is confirmed with external power.
+Monitor serial output with the hardware power fix to verify network registration and service stability.
