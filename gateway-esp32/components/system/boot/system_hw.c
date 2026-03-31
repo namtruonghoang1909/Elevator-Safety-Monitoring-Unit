@@ -5,8 +5,10 @@
 
 #include "system_hw.h"
 #include "system_config.h"
+#include "board_pins.h"
 #include "i2c_bsp.h"
 #include "can_bsp.h"
+#include "uart_bsp.h"
 #include "esp_log.h"
 
 static const char *TAG = "SYS_HW";
@@ -37,6 +39,22 @@ esp_err_t system_hw_init(void) {
         return ret;
     }
     ESP_LOGI(TAG, "CAN Bus initialized at %d kbps", CAN_BAUD_RATE_KBPS);
+
+    // 3. Initialize UART BSP (for SIM Module)
+    uart_bsp_config_t uart_cfg = {
+        .port = SIM_UART_PORT,
+        .baud_rate = SIM_BAUD_RATE,
+        .tx_io_num = SIM_TX_PIN,
+        .rx_io_num = SIM_RX_PIN,
+        .data_cb = NULL // To be set by SIM driver later
+    };
+
+    ret = uart_bsp_init(&uart_cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "UART BSP init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ESP_LOGI(TAG, "UART BSP initialized for SIM Module");
 
     return ESP_OK;
 }

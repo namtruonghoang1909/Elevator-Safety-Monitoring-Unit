@@ -20,8 +20,10 @@ idf_component_register(
         freertos 
         esp_system
         can_protocol
+        board_pins
     PRIV_REQUIRES 
         i2c_bsp
+        uart_bsp
         connectivity_manager
         motion_proxy
         telemetry_service
