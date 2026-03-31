@@ -1,45 +1,56 @@
-# Elevator Safety Monitoring Unit (ESMU)
+# ESMU Gateway Node (ESP32)
 
-The ESMU is an ESP32-based industrial monitoring system designed to enhance elevator safety. It provides real-time detection of abnormal motion, car tilt, and emergency stops, while providing field diagnostics via an OLED display and remote telemetry via MQTT.
+The **Gateway Node** acts as the central coordinator and communication bridge of the Elevator Safety Monitoring Unit (ESMU). It aggregates data from the Edge Node via the CAN bus, manages local visualization on a color TFT display, and handles cloud telemetry via WiFi and MQTT.
 
-## 🏗️ System Architecture
+## 🚀 Key Responsibilities
 
-The project follows a layered service-oriented architecture:
+- **System Coordination**: Maintaining the global system registry and health status for all nodes.
+- **Inter-Node Communication**: Acting as a CAN 2.0B master, processing emergency and health messages from the Edge Node.
+- **Cloud Telemetry**: Publishing real-time elevator metrics and fault alerts to the cloud via MQTT over WiFi.
+- **Fail-Safe Alerts**: Providing a secondary cellular alert path using the SIM7600 module.
+- **User Interface**: Managing high-resolution status dashboards on the ST7789 color display.
 
-### 1. Services Layer
-- **[Motion Monitor](components/services/motion_monitor/README.md)**: EMA filtering, gravity compensation, and logical state tracking.
-- **[Display Service](components/services/display/README.md)**: Multi-layered UI management for real-time visualization.
-- **[Connectivity Stack](components/services/connectivity/README.md)**: Orchestrated WiFi and MQTT lifecycle management.
+## 🏗️ Architecture
 
-### 2. System Layer
-- **[System Controller](components/system/README.md)**: Centralized FSM and event dispatching.
-- **System Registry**: Thread-safe "Whiteboard" for cross-service telemetry.
+The firmware is developed using the **ESP-IDF v5.x** framework and follows a modular service-oriented architecture.
 
-### 3. Drivers & BSP
-- **[MPU6050](components/drivers/mpu6050/README.md)**: Robust 6-axis IMU driver with auto-recovery logic.
-- **[SSD1306](components/drivers/ssd1306/README.md)**: Optimized OLED display driver.
-- **[I2C BSP](components/bsp/i2c_bsp/README.md)**: Thread-safe multi-bus I2C abstraction.
+### Module Structure (`components/`)
+- **`bsp/`**: Thread-safe board support packages for CAN, I2C, and SPI.
+- **`drivers/`**: High-level drivers for SSD1306 (OLED), ST7789 (TFT), and SIM7600.
+- **`services/`**: 
+    - `communication`: CAN/MQTT message processing and protocol management.
+    - `connectivity`: WiFi station management and auto-reconnect logic.
+    - `motion_proxy`: Aggregating and translating Edge Node sensor data for telemetry.
+- **`system/`**: Core boot sequences, system registry, and global state management.
 
-## 🚀 Getting Started
+## 🛠️ Technical Specifications
 
-### Build and Flash
-1. **Install PlatformIO** (CLI or IDE extension).
-2. **Build**: `pio run`
-3. **Flash**: `pio run --target upload --upload-port COM4`
-4. **Monitor**: `pio device monitor --port COM4`
+| Feature | Specification |
+|---------|---------------|
+| **MCU** | ESP32-WROOM-32 |
+| **Framework** | ESP-IDF (FreeRTOS-based) |
+| **Connectivity** | WiFi (802.11b/g/n), MQTT, SIM7600 (4G LTE) |
+| **Display** | ST7789 (240x240 Color TFT via SPI) |
+| **Bus Interface** | CAN 2.0B (TWAI), SPI (HSPI), I2C |
 
-### Running Hardware-in-the-Loop Tests
-Unit tests are written using the Unity framework and run directly on the ESP32:
+## 🔧 Development
+
+### Build System
+The project uses **PlatformIO** for dependency management and build orchestration.
+
+### Flashing
+Ensure the ESP32 is connected via USB-Serial.
 ```bash
-# Run all tests
-pio test -e esp32doit-devkit-v1
-
-# Run a specific component test
-pio test -e esp32doit-devkit-v1 -f test_motion_monitor
+# Build and Flash using PlatformIO CLI
+pio run --target upload
 ```
 
-## 🛠️ Project Standards
-- **Naming**: `snake_case_t` for types, `component_action` for functions.
-- **Error Handling**: Explicit `esp_err_t` checks with `ESP_LOGE` (No silent `ESP_ERROR_CHECK`).
-- **Documentation**: Doxygen-style comments in all public headers.
-- **Thread Safety**: Centralized registry and per-service mutexes for concurrency.
+### Testing
+Unit and integration tests are located in the `test/` directory and use the Unity framework.
+```bash
+# Run all hardware tests
+pio test -e esp32doit-devkit-v1
+```
+
+---
+**Part of the Elevator Safety Monitoring Unit (ESMU).**

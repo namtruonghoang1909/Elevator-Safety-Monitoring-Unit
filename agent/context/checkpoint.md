@@ -1,26 +1,30 @@
-# Session Checkpoint - March 25, 2026
+# Session Checkpoint - March 31, 2026
 
 ## Current Working Context
-- **Distributed System**: 
-  - **Fault Flow FIXED**: Resolved the high-frequency fault oscillation issue. 
-  - **STM32 Edge**: Added vibration filtering (EMA), increased thresholds (5.0/15.0 deg/s), and implemented a 50ms (5-cycle) debounce for emergency states. OLED logging now captures the "worst" state in each window.
-  - **ESP32 Gateway**: Fixed a bug where `HEALTH_STABLE` messages failed to reset the system's fault/error state in the registry.
-- **Build Integrity**: ESP32 Node (Gateway) verified to compile successfully after resolving minor header and uninitialized variable issues.
+- **Driver Verification**: `main.c` has been updated with a sequential state machine to test `sim_a7680c` APIs:
+    1. Hardware Reset
+    2. Info Retrieval (IMEI/IMSI/Phone Number)
+    3. Network Registration (CREG/CEREG)
+    4. SMS Send
+    5. Voice Call
+    6. Continuous Monitoring
+- **Fixes Applied**:
+    - Improved `wait_for_terminal` to discard `*ATREADY`, `SMS READY`, and any lines starting with `AT` (Echoes).
+    - Added `memset` to initialize `sim_a7680c_info_t` to prevent garbage output.
+    - Implemented `AT+CNUM` parsing to retrieve the SIM mobile number.
+    - Added `sim_a7680c_check_status()` for deep diagnostics (CPIN, CFUN, Detailed Registration).
+- **Build Status**: Project `gateway-esp32` builds successfully with the new test suite.
+- **Service Design**: Designed the FSM and recovery logic for the upcoming `cellular_service` in `agent/plan/idea.md`.
 
-## Completed Today
-1. Investigated and fixed the discrepancy between STM32 local display and ESP32 telemetry/OLED fault reporting.
-2. Implemented hysteresis and filtering in `motion_monitor.c` (STM32).
-3. Fixed registry reset logic in `system_registry.c` (ESP32).
-4. Fixed ESP32 build errors:
-    - Removed redundant/missing `display_service.h` include in `system_boot.c`.
-    - Initialized `ret` variable in `system_boot.c` to prevent compiler error.
-    - Removed undefined `FAULT_OVERTILT` from `telemetry_service.c`.
-5. Updated memory log with Entries 17, 18, and 19.
+## Completed
+1. Refined `main.c` for sequential driver testing.
+2. Verified build integrity using PlatformIO.
+3. Documented `cellular_service` FSM, recovery strategies, and API surface.
 
-## Pending Tasks
-1. **SPI BSP**: Implement the SPI master abstraction layer on ESP32.
-2. **ST7789 Driver**: Implement the SPI driver for the 240x240 color TFT display.
-3. **Display Service**: Refactor the display service to support the ST7789 migration and color UI.
+## Pending
+1. **Hardware Verification**: Flash `gateway-esp32` and observe logs for the full test suite execution.
+2. **Analysis**: Based on test results, adjust the `cellular_service` design if needed (e.g., if registration takes longer than expected).
+3. **Implementation**: Once driver is 100% verified, begin implementing the `cellular_service` component.
 
 ## Next Step
-Implement the SPI BSP component (`gateway-esp32/components/bsp/spi_bsp`) to support the new color display.
+Flash the firmware and monitor the serial output to verify driver reliability in real-world conditions.

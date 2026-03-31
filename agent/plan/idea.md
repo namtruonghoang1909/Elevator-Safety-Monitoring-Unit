@@ -1,45 +1,53 @@
-# ESMU Unified Architecture & Protocol Design
+# Cellular Service Design (SIM A7680C)
 
-## Objective
-Establish a symmetrical, layered architecture across the ESP32 Gateway and STM32 Edge nodes, using a shared CAN protocol for communication.
+This document outlines the high-level design and flow for the `cellular_service` on the ESMU Gateway.
 
-## 1. Unified Layered Architecture (Mirror Design)
-Both nodes now follow the same directory and naming convention:
-- **Application (`App/` or `src/`)**: High-level orchestration.
-- **Services (`services/`)**: Business logic (Telemetry, Fault Detection).
-- **Drivers (`drivers/`)**: Hardware-specific device drivers (SSD1306, MPU6050).
-- **BSP (`bsp/`)**: [Refactored from "platform"] Hardware Abstraction Layer (HAL wrappers for CAN, I2C, GPIO).
+## 1. Overview
+The `cellular_service` is an event-driven background service that manages the SIM module's lifecycle. It acts as a bridge between the raw `sim_a7680c` driver and the rest of the system (e.g., `connectivity_manager`, `alert_system`).
 
-## 2. Shared Protocol Definition
-- **CAN Message IDs**: `0x010` (Emergency), `0x100` (Health), `0x200` (Heartbeat).
-- **Data Structures**: Defined in `shared/can_protocol/` for cross-platform binary compatibility.
+## 2. State Machine (FSM)
 
-## 3. Module Responsibilities (STM32 Edge)
-- **`fault_detector`**: Processes raw IMU data to detect Shakes, Free Fall, and Emergency Stops.
-- **`can_service`**: Encodes sensor/state data into ESMU protocol packets for transmission via `bsp_can`.
-- **`mpu6050_driver`**: Ported from ESP32, optimized for STM32 HAL I2C.
+| State | Description | Transition Trigger |
+|-------|-------------|--------------------|
+| **IDLE** | Module is powered off or not initialized. | `cellular_service_start()` |
+| **INITIALIZING** | Syncing baud, disabling echo, getting basic info (IMEI/IMSI). | `sim_a7680c_init()` Success -> **SEARCHING** |
+| **SEARCHING** | Waiting for network registration (CREG/CEREG). | Registered -> **READY**; Timeout -> **RECOVERING** |
+| **READY** | Registered and signal strength is adequate. | Signal Lost -> **SEARCHING**; Error -> **RECOVERING** |
+| **RECOVERING** | Attempting to fix issues (Reset, AT+CFUN=1). | Success -> **INITIALIZING**; Fail Max -> **ERROR** |
+| **ERROR** | Permanent hardware failure or SIM missing. | Manual Reset |
 
-## 4. Concurrency Model (FreeRTOS)
-- **`MotionTask` (High Priority, 10ms)**: IMU sampling -> Fault Detection -> CAN Health update (100ms).
-- **`SystemTask` (Low Priority, 1000ms)**: Heartbeat transmission -> Status LED blink.
+## 3. Recovery Strategies
 
----
+### Scenario A: SIM Not Inserted
+- **Detection**: `IMSI` retrieval fails or `CPIN?` returns error.
+- **Action**: Transition to **ERROR** state after 3 retries. Update `system_registry` to notify UI.
 
-## 5. Remote Fault Acknowledgment (New Idea)
-**Objective**: Allow remote users/operators to acknowledge and clear latched faults from the CoreIoT dashboard.
+### Scenario B: Registration Denied (e.g., No Balance)
+- **Detection**: `CREG` status is `3` (Registration denied) or `0` (Searching too long).
+- **Action**: Log warning, wait 60s, then retry `AT+CFUN=1,1` (Full reset of radio stack).
 
-**Flow**:
-1.  **Fault Detected**: Edge node detects fault -> CAN Emergency packet -> Gateway (ESP32).
-2.  **Publish**: Gateway publishes MQTT message with `ele_fault_code > 0` and `ele_fault_msg`.
-3.  **User Action**: User presses "Acknowledge" button on CoreIoT dashboard.
-4.  **Signal Back**: CoreIoT sends an MQTT message (e.g., to `esmu/cmd/ack`) to the ESP32 Gateway.
-5.  **Local Clear**: 
-    -   Gateway receives ACK.
-    -   Gateway clears its local `system_registry` fault state (`fault_active = false`).
-    -   Gateway resets `current_state` to `SYSTEM_STATE_MONITORING`.
-6.  **Confirm Clear**: Gateway publishes a confirmation MQTT message with `ele_fault_code = 0` to clear the dashboard status.
+### Scenario C: Module Hang (UART Timeout)
+- **Detection**: Mutex timeout or consecutive UART failures in BSP.
+- **Action**: Pulse `PWRKEY` (Hardware Reset) via `sim_a7680c_hw_reset()`. Transition to **INITIALIZING**.
 
-**Implementation Strategy**:
--   **MQTT Subscription**: Gateway needs to subscribe to a command topic.
--   **Registry Update**: Add a function to `system_registry` to clear faults.
--   **CAN Command (Optional)**: If the Edge node also latches, Gateway may need to send a CAN command back to the Edge node to reset its state.
+## 4. Background Polling (Every 10s)
+The service task will periodically:
+1. Check `CSQ` (Signal Quality).
+2. Check `CREG/CEREG` (Registration).
+3. Check `CBC` (Battery/Voltage) and `CPMUTEMP` (Temperature).
+4. Update `system_registry` for UI/Telemetry.
+
+## 5. Event Reporting
+The service will emit system events for other modules to consume:
+- `CELLULAR_EVENT_REGISTERED`: System can now send SMS/MQTT over LTE.
+- `CELLULAR_EVENT_DISCONNECTED`: Failover to other connectivity if available.
+- `CELLULAR_EVENT_SMS_RECEIVED`: (Future) Handle remote commands.
+
+## 6. API Surface (Proposed)
+```c
+esp_err_t cellular_service_init(void);
+esp_err_t cellular_service_start(void);
+cellular_status_t cellular_service_get_status(void);
+esp_err_t cellular_service_send_sms(const char *num, const char *msg);
+esp_err_t cellular_service_emergency_call(void);
+```
