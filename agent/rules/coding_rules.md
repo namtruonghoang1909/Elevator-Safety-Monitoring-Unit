@@ -3,7 +3,7 @@
 ### File Organization
 - Header files in `include/` subdirectory within each component
 - Implementation files in component root
-- Codes should be separated into files for better understanding and reviewing.
+- Codes should be separated into files and folders for better understanding and reviewing.
 - Source file's variables, functions should be organized like this:
 // ─────────────────────────────────────────────
 // Private variables, macros

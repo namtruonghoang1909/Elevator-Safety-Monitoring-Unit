@@ -1,39 +1,46 @@
 
-
-# Code Plan: SIM A7680C Integration (ESP32 Gateway Node)
+# Code Plan: ST7789 Driver Implementation (ESP32 Gateway Node)
 
 ## 1. Objective
-Implement a robust UART-based driver for the SIM A7680C module to enable LTE connectivity and SMS alerts.
+Implement a high-performance ST7789 240x240 TFT display driver using SPI with DMA support on the ESP32 Gateway node. This will replace the SSD1306 as the primary status display.
 
 ## 2. Implementation Steps (TODO)
 
-### Phase 1: UART BSP
-- [ ] Create `gateway-esp32/components/bsp/uart_bsp/include/uart_bsp.h`.
-- [ ] Implement `gateway-esp32/components/bsp/uart_bsp/uart_bsp.c`.
-    - [ ] Initialize UART2 (default for SIM module).
-    - [ ] Implement thread-safe `uart_bsp_write()` and `uart_bsp_read_line()`.
-    - [ ] Implement background task for URC monitoring (Unsolicited Result Codes).
+### Phase 1: SPI BSP & Pin Configuration
+- [ ] Update `gateway-esp32/components/bsp/board_pins/include/board_pins.h` with ST7789 pins.
+    - `ST7789_SCL`: 18
+    - `ST7789_SDA`: 23
+    - `ST7789_CS`: 26
+    - `ST7789_DC`: 27
+    - `ST7789_RST`: 33
+    - `ST7789_BL`: 32
+- [ ] Create `gateway-esp32/components/bsp/spi_bsp/`.
+    - [ ] `include/spi_bsp.h`: Define SPI initialization and device management APIs.
+    - [ ] `spi_bsp.c`: Implement SPI bus initialization using VSPI and DMA.
+- [ ] Create `gateway-esp32/components/bsp/pwm_bsp/` (optional but recommended for backlight).
+    - [ ] Implement simple LEDC wrapper for backlight brightness control.
 
-### Phase 2: A7680C Core Driver
-- [ ] Create `gateway-esp32/components/drivers/a7680c/`.
-- [ ] Implement command/response parser with timeout handling.
-- [ ] Implement module lifecycle management:
-    - [ ] `a7680c_hw_power_on()` (Pulse PWR_KEY).
-    - [ ] `a7680c_init()` (Sync baud rate, disable echo).
-    - [ ] `a7680c_check_status()` (SIM card, Network registration).
+### Phase 2: ST7789 Core Driver
+- [ ] Create `gateway-esp32/components/drivers/st7789/`.
+    - [ ] `include/st7789.h`: Define display configuration and drawing APIs.
+    - [ ] `st7789.c`:
+        - [ ] Implement hardware reset and initialization sequence.
+        - [ ] Implement `st7789_set_window()` to define drawing areas.
+        - [ ] Implement `st7789_push_colors()` using SPI DMA for high-speed transfers.
+        - [ ] Implement `st7789_fill_screen()` and basic pixel/rectangle drawing.
 
-### Phase 3: Telemetry & SMS Services
-- [ ] Implement SMS API: `a7680c_send_sms(const char* phone, const char* msg)`.
-- [ ] Implement LTE-based MQTT (using module's internal stack):
-    - [ ] `a7680c_mqtt_connect()`, `a7680c_mqtt_publish()`.
-
-### Phase 4: Connectivity Manager Integration
-- [ ] Refactor `connectivity_manager.c` to support "Connectivity Priority" (WiFi > LTE).
-- [ ] Implement failover logic: If `WIFI_DISCONNECTED`, attempt `LTE_ATTACH`.
-- [ ] Update `system_registry` to include LTE signal bars and carrier name.
+### Phase 3: Display Service Readiness (Preparation)
+- [ ] Implement a simple color test pattern to verify driver integrity.
+- [ ] Verify SPI frequency (target 40MHz) and DMA stability.
+- [ ] Implement "Partial Buffer" support to allow drawing without a full 115KB framebuffer.
 
 ## 3. Verification & Testing
-- [ ] **Unit Test (UART)**: Loopback TX/RX test.
-- [ ] **AT Command Test**: Send `AT`, expect `OK`.
-- [ ] **SMS Test**: Verify SMS received on a physical phone during simulated fault.
-- [ ] **Failover Test**: Turn off WiFi and verify MQTT telemetry continues via LTE.
+- [ ] **Hardware Verification**: Verify all pins are correctly connected and there are no conflicts with SIM7600 or CAN.
+- [ ] **Initialization Test**: Verify the screen turns on and clear correctly (black).
+- [ ] **Performance Test**: Measure time to fill the screen (target < 20ms at 40MHz).
+- [ ] **Stability Test**: Run test patterns for 1 hour to ensure DMA doesn't hang.
+
+## 4. Dependencies
+- ESP-IDF `driver/spi_master`
+- ESP-IDF `driver/ledc` (for backlight)
+- `board_pins.h` for GPIO definitions
