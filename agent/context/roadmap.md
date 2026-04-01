@@ -57,7 +57,9 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 - **Display Service**
   - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
   - [x] Edge Logger (Diagnostic OLED Mode) - **ACTIVE**.
-  - [ ] ST7789 Driver (SPI) - **PENDING MIGRATION**.
+  - [x] ST7789 Driver (SPI) - **COMPLETED**.
+  - [x] SPI BSP Component (DMA Support) - **COMPLETED**.
+  - [x] PWM BSP Component (Backlight) - **COMPLETED**.
   - [ ] UI Adaptation for Color/Higher Resolution.
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.

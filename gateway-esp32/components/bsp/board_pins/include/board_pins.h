@@ -27,4 +27,12 @@
 #define CONFIG_PIN_STATUS_LED      2
 #define CONFIG_PIN_CONFIG_LED      4
 
+/* ST7789 Display Configuration (SPI) */
+#define ST7789_SCL_PIN             18   // SCLK
+#define ST7789_SDA_PIN             23   // MOSI
+#define ST7789_CS_PIN              26
+#define ST7789_DC_PIN              27
+#define ST7789_RST_PIN             33
+#define ST7789_BL_PIN              32
+
 #endif // BOARD_PINS_H
