@@ -59,6 +59,19 @@ void system_registry_update_wifi(int8_t level, int8_t rssi, bool connected) {
     }
 }
 
+void system_registry_update_cellular(int8_t level, int8_t csq, bool connected, const char* operator) {
+    if (LOCK_REG()) {
+        g_registry.cellular_level = level;
+        g_registry.cellular_rssi = csq;
+        g_registry.cellular_connected = connected;
+        if (operator) {
+            strncpy(g_registry.cellular_operator, operator, sizeof(g_registry.cellular_operator) - 1);
+            g_registry.cellular_operator[sizeof(g_registry.cellular_operator) - 1] = '\0';
+        }
+        UNLOCK_REG();
+    }
+}
+
 void system_registry_update_edge_status(bool connected) {
     if (LOCK_REG()) {
         g_registry.edge_node_connected = connected;

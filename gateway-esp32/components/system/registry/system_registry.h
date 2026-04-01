@@ -21,6 +21,10 @@ typedef struct {
     int8_t wifi_level;         // 0-4 bars
     int8_t wifi_rssi;          // Raw RSSI in dBm
     bool mqtt_connected;
+    bool cellular_connected;   // Cellular registration status
+    int8_t cellular_level;     // 0-4 bars
+    int8_t cellular_rssi;      // Raw CSQ (0-31)
+    char cellular_operator[32]; // Current network provider
     bool edge_node_connected;  // Status of the remote STM32 node
     char motion_state[16];     // "IDLE", "UP", "DOWN"
     char elevator_health[16];  // "GOOD", "SICK", "CRITICAL"
@@ -74,6 +78,15 @@ void system_registry_set_subtext(const char* text);
  * @param connected MQTT connection status
  */
 void system_registry_update_wifi(int8_t level, int8_t rssi, bool connected);
+
+/**
+ * @brief Update Cellular connectivity info
+ * @param level Signal strength (0-4 bars)
+ * @param csq Raw CSQ (0-31)
+ * @param connected Network registration status
+ * @param operator Network provider name
+ */
+void system_registry_update_cellular(int8_t level, int8_t csq, bool connected, const char* operator);
 
 /**
  * @brief Update Edge Node (Remote STM32) connection status

@@ -10,6 +10,7 @@
 #include "connectivity_manager.h"
 #include "motion_proxy.h"
 #include "telemetry_service.h"
+#include "cellular_service.h"
 #include "can_bsp.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -69,6 +70,14 @@ static void boot_task(void *pvParameters) {
     ret = telemetry_service_init();
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Telemetry service failed: %s", esp_err_to_name(ret));
+    }
+
+    // 6. Cellular
+    system_registry_set_subtext("Starting 4G...");
+    if (cellular_service_init() == ESP_OK) {
+        cellular_service_start();
+    } else {
+        ESP_LOGE(TAG, "Cellular service failed");
     }
 
     vTaskDelay(pdMS_TO_TICKS(1000));

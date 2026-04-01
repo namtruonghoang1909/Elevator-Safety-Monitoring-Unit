@@ -66,3 +66,18 @@
     - **Documentation**: Created a comprehensive `README.md` for the SIM driver, detailing API usage and hardware requirements.
     - **Testing**: Updated the `main.c` diagnostic suite with commented-out test hooks for SMS and calls to facilitate safe physical testing.
 - **Result**: The SIM driver now provides a complete set of emergency communication APIs. Verified with a successful project build.
+
+### 25. Cellular Service Implementation & Registry Integration (March 31, 2026)
+- **What**: Implemented the `cellular_service` as a background task and integrated it with the `system_registry`.
+- **Where**: 
+    - `gateway-esp32/components/services/communication/cellular_service/`
+    - `gateway-esp32/components/system/registry/system_registry.h/c`
+    - `gateway-esp32/src/main.c`
+    - `gateway-esp32/CMakeLists.txt`
+- **Why**: To provide a robust, event-driven background service for managing the SIM module's lifecycle, network registration, and providing high-level APIs for SMS/Calls to other system modules.
+- **Fixes**:
+    - **Cellular Service**: Implemented a Finite State Machine (FSM) with states: `IDLE`, `INITIALIZING`, `SEARCHING`, `READY`, `RECOVERING`, and `ERROR`. The task periodically polls for signal strength and registration status.
+    - **System Registry**: Added `cellular_connected`, `cellular_level`, `cellular_rssi`, and `cellular_operator` fields to `system_status_registry_t`. Implemented `system_registry_update_cellular()` for thread-safe updates.
+    - **Main App**: Refactored `main.c` to use `cellular_service_init()` and `cellular_service_start()` instead of direct driver calls, improving separation of concerns.
+    - **Build System**: Updated `CMakeLists.txt` and `src/CMakeLists.txt` to include the new component and its requirements.
+- **Result**: The Gateway now has a dedicated service for cellular connectivity that automatically handles initialization, network searching, and recovery. Verified with a successful project build.

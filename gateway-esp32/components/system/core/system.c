@@ -16,10 +16,13 @@ esp_err_t system_start(void) {
     ESP_LOGI(TAG, "Starting ESMU System Supervisor...");
 
     // 1. Stage 1 Init (Queue & Mutexes)
-    ESP_ERROR_CHECK(system_core_init());
+    esp_err_t ret = system_core_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "System core init failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     system_report_event(SYSTEM_EVENT_BOOT);
 
     return ESP_OK;
-
 }

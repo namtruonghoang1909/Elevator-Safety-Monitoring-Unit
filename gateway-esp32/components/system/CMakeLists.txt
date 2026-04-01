@@ -27,5 +27,6 @@ idf_component_register(
         connectivity_manager
         motion_proxy
         telemetry_service
+        cellular_service
         can_bsp
 )
