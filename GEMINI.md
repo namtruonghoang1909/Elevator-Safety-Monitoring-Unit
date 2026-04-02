@@ -63,7 +63,7 @@ The system prioritizes three types of data over the CAN bus:
 - components: Contains brief infomations about the components of the system.
 - context: holds the working context for AI agent, current state of the project(roadmap.md), detailed context that developer was working on(checkpoint.md).
 - memory: place to save encountered bugs and its solution(fixed_bugs.md), note for developer's correction for AI(self_improve.md).
-- plan: place for AI agent to express the plans before building something, plan before fixing a bug(bug_fixing_plan), plan for designing system, modules, or storing sudden user ideas(idea.md), plan before start implementing anything(code_plan.md).
+- plan: place for AI agent to express the plans before building something, plan before fixing a bug(bug_fixing_plan), plan for designing system, modules, or storing sudden user ideas(idea.md), plan before start implementing anything(code_plan.md), before creating commit plans check(committing_rules.md).
 - rules: this is the most crucial folder, agent must understand all contents in this folder before doing anything, it contains chat, code, debug, fix bug, document RULES.
 - temporary: this folder is for temporary task from user if the task are too long(task.md)
 ### ------------------ BUILD ACTIONS ------------------ ###

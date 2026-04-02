@@ -13,7 +13,7 @@ The ESMU utilizes a **Dual-Node Distributed Architecture** connected via an indu
 ### 1. Edge Node (STM32F103)
 *The "Sensor Hub"*
 - **Role**: High-speed data acquisition and real-time fault detection.
-- **Hardware**: STM32F103 BluePill + MPU6050 (6-axis Accel/Gyro).
+- **Hardware**: STM32F103 BluePill + MPU6050 (6-axis Accel/Gyro) + SSD1306 OLED display.
 - **Functions**: 
     - 100Hz motion sampling with EMA (Exponential Moving Average) filtering.
     - Fault detection algorithms (Free Fall, Sudden Impact, Overtilt, Vibration).
@@ -23,7 +23,7 @@ The ESMU utilizes a **Dual-Node Distributed Architecture** connected via an indu
 ### 2. Gateway Node (ESP32)
 *The "Orchestrator"*
 - **Role**: Data aggregation, local visualization, and cloud connectivity.
-- **Hardware**: ESP32-WROOM + SSD1306/ST7789 Display + A7680C (4G LTE).
+- **Hardware**: ESP32-WROOM + ST7789 Display + A7680C (4G LTE).
 - **Functions**:
     - CAN-to-MQTT proxy for remote monitoring.
     - Dual-path telemetry: WiFi (Primary) + 4G LTE (Emergency Backup).
@@ -38,8 +38,8 @@ The ESMU utilizes a **Dual-Node Distributed Architecture** connected via an indu
     - **EMERGENCY (Highest)**: Immediate interrupt for detected faults.
     - **HEALTH (High)**: 100ms periodic motion/balance metrics.
     - **HEARTBEAT (Medium)**: 1s node status and uptime reporting.
-- **Fail-Safe Connectivity**: `cellular_service` manages the A7680C 4G module to ensure alerts reach the cloud even if building internet fails.
-- **Smart Fault Detection**: Implements hysteresis and EMA filtering to prevent false positives while maintaining 100ms response times.
+- **Fail-Safe Connectivity**: `cellular_service` manages the A7680C 4G module to ensure alerts reach the user even if building internet fails.
+- **Fault Detection**: Implements hysteresis and EMA filtering to prevent false positives while maintaining 100ms response times.
 - **Local Diagnostics**: OLED/TFT display provides real-time "Worst-Case" logging and system-wide status at a glance.
 
 ## 🛠️ Technical Stack
