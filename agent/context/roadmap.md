@@ -7,9 +7,13 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 ## I. Drivers & Platform Layer
 *Low-level hardware abstractions and chip-specific drivers.*
 
-- **I2C Platform**
-  - [x] Implementation: Thread-safe master abstraction.
-  - [x] Verification: Unit tests for bus management.
+- **Hardware Abstraction Layer (HAL) - Gateway**
+  - [x] Refactor from BSP to HAL naming (`hal_<module>_<action>`).
+  - [x] I2C Platform: Thread-safe master abstraction.
+  - [x] SPI Platform: DMA support for ST7789.
+  - [x] CAN Platform: TWAI thread-safe driver.
+  - [x] UART Platform: Background RX with callbacks.
+  - [x] PWM Platform: Backlight control.
 - **MPU6050**
   - [x] Implementation: Raw and scaled data processing (STM32 Ported).
   - [x] Verification: Interactive Unity tests (Gravity/FSR/Recovery). [COMPLETE]
@@ -35,7 +39,7 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Implementation: Orchestration of WiFi and MQTT.
   - [x] Verification: End-to-end telemetry tests.
 - **SIM A7680C Driver**
-  - [x] Implementation: Generic UART BSP Integration, Line Buffering.
+  - [x] Implementation: Generic UART HAL Integration, Line Buffering.
   - [x] Implementation: Signal strength parsing (CSQ).
   - [x] Implementation: Registration & Operator parsing (CREG, COPS).
   - [x] Verification: Network status monitoring (via Cellular Service).
@@ -58,8 +62,8 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
   - [x] Edge Logger (Diagnostic OLED Mode) - **ACTIVE**.
   - [x] ST7789 Driver (SPI) - **COMPLETED**.
-  - [x] SPI BSP Component (DMA Support) - **COMPLETED**.
-  - [x] PWM BSP Component (Backlight) - **COMPLETED**.
+  - [x] SPI HAL Component (DMA Support) - **COMPLETED**.
+  - [x] PWM HAL Component (Backlight) - **COMPLETED**.
   - [ ] UI Adaptation for Color/Higher Resolution.
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.
@@ -87,4 +91,4 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [ ] Verification: System-wide integration and fail-safe tests.
 
 ---
-*Last Updated: March 2026*
+*Last Updated: April 2026*
