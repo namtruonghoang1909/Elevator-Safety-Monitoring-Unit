@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESMU Management Portal</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">ESMU v1.0</div>
+        <div class="nav-links">
+            <a href="#" id="nav-dash" class="active">Dashboard</a>
+            <a href="#" id="nav-config">Settings</a>
+        </div>
+    </nav>
+
+    <div class='main-content'>
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view">
+            <div class="status-banner" id="system-banner">
+                <span id="system-state">INITIALIZING</span>
+                <span id="system-subtext">Waiting for data...</span>
+            </div>
+
+            <div class="grid-container">
+                <!-- Motion Card -->
+                <div class="card motion-card">
+                    <h3>Motion & Health</h3>
+                    <div class="metric">
+                        <span class="label">State:</span>
+                        <span id="motion-state" class="value">---</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Vibration:</span>
+                        <span id="vibration-val" class="value">0.0</span> <small>deg/s</small>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Health:</span>
+                        <span id="ele-health" class="value status-good">GOOD</span>
+                    </div>
+                </div>
+
+                <!-- Connectivity Card -->
+                <div class="card network-card">
+                    <h3>Connectivity</h3>
+                    <div class="metric">
+                        <span class="label">WiFi:</span>
+                        <span id="wifi-status" class="value">Disconnected</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Cellular:</span>
+                        <span id="cell-status" class="value">Searching...</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">MQTT:</span>
+                        <span id="mqtt-status" class="value">Offline</span>
+                    </div>
+                </div>
+
+                <!-- Edge Node Card -->
+                <div class="card edge-card">
+                    <h3>Edge Node (STM32)</h3>
+                    <div class="metric">
+                        <span class="label">Link:</span>
+                        <span id="edge-link" class="value">Disconnected</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Armed:</span>
+                        <span id="edge-armed" class="value">No</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Uptime:</span>
+                        <span id="system-uptime" class="value">0</span>s
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration View -->
+        <div id="config-view" class="view" style="display: none;">
+            <div class="card config-card">
+                <h3>System Configuration</h3>
+                <p>Update WiFi and Emergency contact details.</p>
+                <form id="configForm" action='/config' method='POST'>
+                    <div class="input-group">
+                        <label>WiFi SSID</label>
+                        <input type='text' name='ssid' placeholder='WiFi Name' required>
+                    </div>
+                    <div class="input-group">
+                        <label>WiFi Password</label>
+                        <input type='password' name='pass' placeholder='Password'>
+                    </div>
+                    <div class="input-group">
+                        <label>Emergency Phone</label>
+                        <input type='tel' name='phone' placeholder='+84...' required>
+                    </div>
+                    <button type='submit'>Save & Apply</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
