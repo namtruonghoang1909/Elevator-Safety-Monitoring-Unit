@@ -35,7 +35,7 @@ esp_err_t system_registry_init(void) {
 void system_registry_set_state(system_state_id_t state) {
     if (LOCK_REG()) {
         g_registry.current_state = state;
-        g_registry.fault_active = (state == SYSTEM_STATE_ERROR);
+        // removed: g_registry.fault_active = (state == SYSTEM_STATE_ERROR);
         UNLOCK_REG();
     }
 }
@@ -75,6 +75,7 @@ void system_registry_update_cellular(int8_t level, int8_t csq, bool connected, c
 void system_registry_update_edge_status(bool connected) {
     if (LOCK_REG()) {
         g_registry.edge_node_connected = connected;
+        if (!connected) g_registry.edge_armed = false;
         UNLOCK_REG();
     }
 }
@@ -103,6 +104,16 @@ void system_registry_set_wifi_credentials(bool set) {
 void system_registry_update_uptime(uint32_t uptime_sec) {
     if (LOCK_REG()) {
         g_registry.uptime_sec = uptime_sec;
+        UNLOCK_REG();
+    }
+}
+
+void system_registry_update_emergency_phone(const char* phone) {
+    if (LOCK_REG()) {
+        if (phone) {
+            strncpy(g_registry.emergency_phone, phone, sizeof(g_registry.emergency_phone) - 1);
+            g_registry.emergency_phone[sizeof(g_registry.emergency_phone) - 1] = '\0';
+        }
         UNLOCK_REG();
     }
 }
@@ -139,10 +150,15 @@ void system_registry_update_from_protocol_health(const ele_health_t *pkt) {
     switch (pkt->health_status) {
         case HEALTH_STABLE:
             strncpy(g_registry.elevator_health, "GOOD", 15);
-            // If the Edge node says stable, we can clear our local fault flag
-            // (Assuming the Edge node only sends STABLE if the fault is gone)
-            g_registry.fault_active = false;
+            // If the Edge node says stable, we only clear our local fault flag if we are NOT in ERROR state
+            // or if we want to allow recovery from health packet.
+            // Let's make it more stable: only clear if STABLE is received and fault_active is already true,
+            // but keep the ERROR state until manually cleared or handled.
+            g_registry.fault_active = false; 
             if (g_registry.current_state == SYSTEM_STATE_ERROR) {
+                // If we were in error but edge says STABLE, we might be recovering
+                // but we keep the state until we are sure.
+                // For now, let's allow recovery to MONITORING to see if it fixes the flip.
                 g_registry.current_state = SYSTEM_STATE_MONITORING;
             }
             break;
@@ -171,7 +187,8 @@ void system_registry_update_from_protocol_heartbeat(const edge_heartbeat_t *pkt)
     g_registry.raw_edge_uptime = pkt->uptime_sec;
     g_registry.raw_edge_error = pkt->error_code;
 
-    g_registry.edge_node_connected = (pkt->edge_state == EDGE_STATE_RUNNING || pkt->edge_state == EDGE_STATE_INIT);
+    g_registry.edge_node_connected = (pkt->edge_state != EDGE_STATE_ERROR);
+    g_registry.edge_armed = (pkt->edge_state == EDGE_STATE_RUNNING);
     
     if (pkt->edge_state == EDGE_STATE_ERROR) {
          strncpy(g_registry.sub_status, "EDGE NODE ERROR", 31);

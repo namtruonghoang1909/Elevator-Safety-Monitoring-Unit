@@ -80,7 +80,7 @@ static void connectivity_manager_task(void *pvParameters)
     uint32_t uptime_ticks = 0;
 
     /* Check for credentials in NVS */
-    char ssid[33] = {0}, pass[64] = {0};
+    char ssid[33] = {0}, pass[64] = {0}, phone[20] = {0};
     if (platform_nvs_load_wifi_creds(ssid, sizeof(ssid), pass, sizeof(pass)) == ESP_OK) {
         ESP_LOGI(TAG, "Loaded WiFi credentials from NVS. Connecting...");
         static char static_ssid[33], static_pass[64];
@@ -88,6 +88,11 @@ static void connectivity_manager_task(void *pvParameters)
         strncpy(static_pass, pass, 63);
         s_config.wifi_config.ssid = static_ssid;
         s_config.wifi_config.password = static_pass;
+
+        if (platform_nvs_load_emergency_phone(phone, sizeof(phone)) == ESP_OK) {
+            ESP_LOGI(TAG, "Loaded emergency phone: %s", phone);
+            system_registry_update_emergency_phone(phone);
+        }
 
         ESP_LOGI(TAG, "Starting WiFi STA -> SSID: [%s], Password: [%s]", s_config.wifi_config.ssid, s_config.wifi_config.password);
         
@@ -145,10 +150,12 @@ static void connectivity_manager_task(void *pvParameters)
             led_state = !led_state;
             gpio_set_level(CONFIG_PIN_CONFIG_LED, led_state);
 
-            char new_ssid[33] = {0}, new_pass[64] = {0};
-            if (web_server_get_credentials(new_ssid, new_pass)) {
-                ESP_LOGI(TAG, "New WiFi credentials retrieved -> SSID: %s, Pass: %s", new_ssid, new_pass);
+            char new_ssid[33] = {0}, new_pass[64] = {0}, new_phone[20] = {0};
+            if (web_server_get_config(new_ssid, new_pass, new_phone)) {
+                ESP_LOGI(TAG, "New config retrieved -> SSID: %s, Pass: %s, Phone: %s", new_ssid, new_pass, new_phone);
                 platform_nvs_save_wifi_creds(new_ssid, new_pass);
+                platform_nvs_save_emergency_phone(new_phone);
+                system_registry_update_emergency_phone(new_phone);
                 
                 web_server_stop();
                 wifi_manager_stop();

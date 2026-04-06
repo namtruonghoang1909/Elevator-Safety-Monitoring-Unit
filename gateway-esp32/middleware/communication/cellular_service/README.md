@@ -9,6 +9,7 @@ The **Cellular Service** is a high-level background service that manages the lif
 - **Health Reporting**: Updates the `system_registry` with real-time cellular metrics for UI and Telemetry.
 - **Fault Recovery**: Automatically triggers hardware resets via the `sim_a7680c` driver if communication fails or the network is lost repeatedly.
 - **Emergency APIs**: Simple, thread-safe functions for sending SMS alerts and initiating voice calls.
+- **System Integration**: Automatically triggered by the `system_controller` when elevator faults are detected, using the user-configured emergency phone number.
 
 ## 🏗️ State Machine (FSM)
 

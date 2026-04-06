@@ -13,6 +13,7 @@ static const char *TAG = "platform_nvs";
 static const char *NAMESPACE = "esmu_storage";
 static const char *KEY_SSID = "wifi_ssid";
 static const char *KEY_PASS = "wifi_pass";
+static const char *KEY_PHONE = "emer_phone";
 
 esp_err_t platform_nvs_init(void) {
     esp_err_t ret = nvs_flash_init();
@@ -68,6 +69,43 @@ esp_err_t platform_nvs_load_wifi_creds(char *ssid, size_t ssid_len, char *passwo
     err = nvs_get_str(handle, KEY_PASS, password, &password_len);
 
 cleanup:
+    nvs_close(handle);
+    return err;
+}
+
+esp_err_t platform_nvs_save_emergency_phone(const char *phone) {
+    nvs_handle_t handle;
+    esp_err_t err;
+
+    if (phone == NULL) return ESP_ERR_INVALID_ARG;
+
+    err = nvs_open(NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error opening NVS handle: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = nvs_set_str(handle, KEY_PHONE, phone);
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+
+    nvs_close(handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error saving phone to NVS: %s", esp_err_to_name(err));
+    }
+    return err;
+}
+
+esp_err_t platform_nvs_load_emergency_phone(char *phone, size_t phone_len) {
+    nvs_handle_t handle;
+    esp_err_t err;
+
+    err = nvs_open(NAMESPACE, NVS_READONLY, &handle);
+    if (err != ESP_OK) return err;
+
+    err = nvs_get_str(handle, KEY_PHONE, phone, &phone_len);
+
     nvs_close(handle);
     return err;
 }
