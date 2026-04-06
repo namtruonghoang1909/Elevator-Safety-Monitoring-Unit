@@ -57,6 +57,8 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
 - **Cellular Service**
   - [x] Implementation: Background FSM (Idle, Init, Search, Ready, Recover).
   - [x] Integration: System Registry updates for UI/Telemetry.
+  - [x] Integration: Emergency phone number configuration via Web UI.
+  - [x] Integration: Automatic SMS/Call alerts on fault detection.
   - [ ] Verification: Real-world network registration (Pending HW Power Fix).
 - **Display Service**
   - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
@@ -64,7 +66,9 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] ST7789 Driver (SPI) - **COMPLETED**.
   - [x] SPI HAL Component (DMA Support) - **COMPLETED**.
   - [x] PWM HAL Component (Backlight) - **COMPLETED**.
-  - [ ] UI Adaptation for Color/Higher Resolution.
+  - [x] UI Adaptation for Color/Higher Resolution (Dashboard & Config Screen).
+  - [x] Modern Diagnostic Dashboard (Web) - **BACKEND COMPLETED**.
+  - [ ] Modern Diagnostic Dashboard (Web) - **FRONTEND IN-PROGRESS**.
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.
   - [ ] Verification: Simulated fault detection tests.

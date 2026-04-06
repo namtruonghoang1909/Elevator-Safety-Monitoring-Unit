@@ -23,10 +23,11 @@ esp_err_t web_server_start(void);
 esp_err_t web_server_stop(void);
 
 /**
- * @brief Check if new WiFi credentials have been received via the web portal
+ * @brief Check if new configuration has been received via the web portal
  * 
  * @param ssid_out Buffer to store received SSID
  * @param pass_out Buffer to store received Password
- * @return true if credentials were received
+ * @param phone_out Buffer to store received Phone Number
+ * @return true if configuration was received
  */
-bool web_server_get_credentials(char *ssid_out, char *pass_out);
+bool web_server_get_config(char *ssid_out, char *pass_out, char *phone_out);
