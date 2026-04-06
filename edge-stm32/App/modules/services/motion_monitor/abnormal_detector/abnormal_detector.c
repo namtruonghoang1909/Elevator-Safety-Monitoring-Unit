@@ -11,7 +11,7 @@
 #define RAW_THRESHOLD_IMPACT     1228
 #define RAW_THRESHOLD_VIB_HIGH   100     /**< 10.6 deg/s * 32.8 */ // newly updated by dev
 #define RAW_THRESHOLD_VIB_MED    50     /**< 4.5 deg/s * 32.8 */ // newly updated by dev
-#define DEBOUNCE_CYCLES          10      /**< Increased to 100ms for stability */
+#define DEBOUNCE_CYCLES          20      /**< Increased to 200ms for stability */
 
 void abnormal_detector_process(detector_result_t *res, mpu6050_raw_data_t raw, int16_t offset_z, int16_t *offsets_gyro) {
     int32_t raw_accel_mag = (int32_t)sqrtf((float)raw.accel_x*raw.accel_x + (float)raw.accel_y*raw.accel_y + (float)raw.accel_z*raw.accel_z);

@@ -13,9 +13,6 @@
 #include "task.h"
 #include <string.h>
 
-#define TELEMETRY_HEALTH_INTERVAL_MS    3000
-#define TELEMETRY_HEARTBEAT_INTERVAL_MS 5000
-
 #define EMERGENCY_COOLDOWN_MS           5000
 
 static TaskHandle_t telemetryTaskHandle = NULL;
@@ -28,8 +25,7 @@ static void send_health_packet(void) {
     system_registry_t data;
     if (!system_registry_read(&data)) return;
 
-    if (!data.is_monitoring_active) return; // Wait for arming
-
+    // We send health even if not monitoring (armed) so Gateway has latest metrics
     ele_health_t packet = {0};
     packet.vibration = (int16_t)(data.metrics.vibration * 100);
     packet.speed = data.metrics.speed;
@@ -91,11 +87,11 @@ static void telemetry_task(void *argument) {
     
     for (;;) {
         uint32_t now = xTaskGetTickCount();
-        if (now - last_health >= pdMS_TO_TICKS(TELEMETRY_HEALTH_INTERVAL_MS)) {
+        if (now - last_health >= pdMS_TO_TICKS(CAN_INTERVAL_MS_ELE_HEALTH)) {
             send_health_packet();
             last_health = now;
         }
-        if (now - last_heartbeat >= pdMS_TO_TICKS(TELEMETRY_HEARTBEAT_INTERVAL_MS)) {
+        if (now - last_heartbeat >= pdMS_TO_TICKS(CAN_INTERVAL_MS_EDGE_HEARTBEAT)) {
             send_heartbeat_packet();
             last_heartbeat = now;
         }
