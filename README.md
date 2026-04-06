@@ -119,7 +119,7 @@ The two nodes are connected via a simple 2-wire differential **CAN Bus**:
 - **CAN_L** (Gateway) <--> **CAN_L** (Edge)
 - *Note: Ensure a 120Ω terminating resistor is placed at both ends of the bus.*
 
-<img src="docs/hardware/hw_capture.png" alt="Hardware Capture" width="400">
+<img src="docs/hardware/hw_capture.jpg" alt="Hardware Capture" width="400">
 
 
 ## 🚧 Future Work
