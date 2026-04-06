@@ -37,6 +37,7 @@ typedef struct {
     int8_t cellular_rssi;      // Raw CSQ (0-31)
     char cellular_operator[32]; // Current network provider
     bool edge_node_connected;  // Status of the remote STM32 node
+    bool edge_armed;           // True if STM32 is actively monitoring
     char motion_state[16];     // "IDLE", "UP", "DOWN"
     char elevator_health[16];  // "GOOD", "SICK", "CRITICAL"
     bool has_wifi_creds;       // True if SSID/Pass are configured
@@ -62,6 +63,8 @@ typedef struct {
     uint8_t last_fault_severity;
     int16_t last_fault_value;
     uint16_t last_fault_timestamp; // New: Timestamp of fault
+
+    char emergency_phone[20];      // Target phone for SMS/Calls
 } system_status_registry_t;
 
 /**
@@ -129,6 +132,13 @@ void system_registry_set_wifi_credentials(bool set);
  * @param uptime_sec Seconds since boot
  */
 void system_registry_update_uptime(uint32_t uptime_sec);
+
+/**
+ * @brief Update the emergency phone number
+ * @param phone Phone number string
+ */
+void system_registry_update_emergency_phone(const char* phone);
+
 #include "esmu_protocol.h"
 
 /**

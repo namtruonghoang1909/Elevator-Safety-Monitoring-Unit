@@ -1,53 +1,43 @@
-# Task: Move system_registry to app/ and Separate app/core into Folders
+# Task: Modern Diagnostic Dashboard Implementation
 
-## Context
-As requested, we will move `system_registry` into `app/` and organize `app/core/` into functional subfolders. Headers used outside their folder will be in `include/`, while internal headers will remain in the subfolder root.
-
-## Proposed Structure
-```text
-app/
-├── registry/
-│   ├── include/
-│   │   └── system_registry.h
-│   ├── system_registry.c
-│   └── CMakeLists.txt
-└── core/
-    ├── boot/
-    │   ├── system_boot.c
-    │   └── system_boot.h (Internal)
-    ├── controller/
-    │   ├── include/
-    │   │   └── system.h (Used by main.c)
-    │   ├── system.c
-    │   ├── system_controller.c
-    │   └── system_event.h (Internal)
-    ├── hw/
-    │   ├── system_hw.c
-    │   └── system_hw.h (Internal)
-    ├── heartbeat/
-    │   ├── heartbeat.c
-    │   └── heartbeat.h (Internal)
-    ├── include/
-    │   └── system_config.h (Core-wide config)
-    └── CMakeLists.txt
-```
+## Objective
+Transform the simple WiFi provisioning page into a live telemetry dashboard that shows real-time vibration, motion state, and network health.
 
 ## Todo List
-### Part 1: Move System Registry
-- [ ] Move `middleware/registry/` to `app/registry/`
-- [ ] Move `app/registry/system_registry.h` to `app/registry/include/`
-- [ ] Update `app/registry/CMakeLists.txt`
-- [ ] Update `gateway-esp32/CMakeLists.txt` (if it was explicitly listed there, otherwise it's just a component discovery)
 
-### Part 2: Refactor app/core
-- [ ] Create `app/core/boot/` and move `system_boot.*`
-- [ ] Create `app/core/controller/include/` and move `system.h`
-- [ ] Create `app/core/controller/` and move `system.c`, `system_controller.c`, `system_event.h`
-- [ ] Create `app/core/hw/` and move `system_hw.*`
-- [ ] Create `app/core/heartbeat/` and move `heartbeat.*`
-- [ ] Create `app/core/include/` and move `system_config.h`
-- [ ] Update `app/core/CMakeLists.txt` to reflect the new paths and include dirs
-- [ ] Update internal includes in all core files
+### 1. Backend Implementation (ESP32)
+- [ ] **Create `web_api_handlers.c`**:
+    - [ ] Implement `web_api_status_json_handler` to serialize `system_status_registry_t` snapshot into a JSON string using `cJSON`.
+    - [ ] Implement other API-related handlers if needed (e.g., config fetch).
+- [ ] **Modify `web_server.c`**:
+    - [ ] Declare the external status handler from `web_api_handlers.c`.
+    - [ ] Define `status_uri` struct for `/api/status`.
+    - [ ] Register `status_uri` in `web_server_start`.
+- [ ] **Update `CMakeLists.txt`**:
+    - [ ] Add `web_api_handlers.c` to the `SRCS` list.
+- [ ] **Verification**:
+    - [ ] Build and flash the firmware.
+    - [ ] Access `http://<ip>/api/status` to verify JSON output.
 
-### Part 3: Verification
-- [ ] Verify build stability with `pio run`
+### 2. Frontend Implementation (Web Assets)
+- [ ] **Update `index.html`**:
+    - [ ] Implement a **Single Page Application (SPA)** structure with two main views: `dashboard-view` and `config-view`.
+    - [ ] Add a navigation bar (top or side) to switch between "Live Monitoring" and "System Settings".
+    - [ ] Dashboard View: Responsive grid UI with "cards" for different metrics (Motion, Network, System).
+    - [ ] Config View: Port existing WiFi/Phone setup form here.
+- [ ] **Update `style.css`**:
+    - [ ] Implement a professional "Dark Mode" dashboard styling.
+    - [ ] Add styles for navigation tabs (Active/Inactive states).
+    - [ ] Add styles for cards, progress bars, and status indicators.
+- [ ] **Update `script.js`**:
+    - [ ] Add view switching logic (show/hide sections based on navigation clicks).
+    - [ ] Implement AJAX polling (using `fetch`) to get `/api/status` every 1000ms.
+    - [ ] Update the DOM with received data.
+- [ ] **Verification**:
+    - [ ] Run `pio run --target uploadfs` to upload new assets.
+    - [ ] Open the web interface and verify real-time updates.
+
+### 3. Documentation & Cleanup
+- [ ] Update `agent/context/roadmap.md` and `agent/context/checkpoint.md`.
+- [ ] Update `gateway-esp32/middleware/connectivity/web_server/README.md` if it exists.
+- [ ] Record the changes in `agent/context/memory.md`.

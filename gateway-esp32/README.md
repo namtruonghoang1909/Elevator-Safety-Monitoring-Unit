@@ -15,17 +15,17 @@ The **Gateway Node** acts as the central coordinator and communication bridge of
 The firmware is developed using the **ESP-IDF v5.x** framework and follows a modular service-oriented architecture.
 
 ### Module Structure
-- **`platform/`**: Thread-safe hardware abstraction layers for CAN, I2C, SPI, UART, and PWM.
+- **`platform/`**: Thread-safe hardware abstraction layers for CAN, I2C, SPI, UART, PWM, and NVS.
 - **`drivers/`**: High-level drivers for SSD1306 (OLED), ST7789 (TFT), and A7680C (4G).
 - **`middleware/`**: 
     - `communication`: `cellular_service` (4G FSM), `telemetry_service` (MQTT).
     - `connectivity`: `wifi_manager`, `mqtt_manager`, `connectivity_manager`, `web_server`.
-    - `registry`: Global thread-safe system state management.
 - **`app/`**: 
-    - `boot`: Core boot sequences (`system_hw`).
+    - `boot`: Core boot sequences and hardware initialization.
     - `core`: System controller and global state management.
+    - `registry`: Global thread-safe system state management (The "Whiteboard").
+    - `display`: ST7789 TFT dashboard and provisioning UI.
     - `motion_proxy`: Aggregating and translating Edge Node sensor data for telemetry.
-    - `system_services`: Background tasks like `heartbeat`.
 
 ## 🛠️ Technical Specifications
 

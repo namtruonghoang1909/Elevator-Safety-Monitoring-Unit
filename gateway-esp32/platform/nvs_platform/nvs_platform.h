@@ -36,6 +36,23 @@ esp_err_t platform_nvs_save_wifi_creds(const char *ssid, const char *password);
 esp_err_t platform_nvs_load_wifi_creds(char *ssid, size_t ssid_len, char *password, size_t password_len);
 
 /**
+ * @brief Save emergency phone number to NVS
+ *
+ * @param phone Emergency phone number
+ * @return ESP_OK on success
+ */
+esp_err_t platform_nvs_save_emergency_phone(const char *phone);
+
+/**
+ * @brief Load emergency phone number from NVS
+ *
+ * @param phone Buffer to store phone number
+ * @param phone_len Length of phone buffer
+ * @return ESP_OK on success, ESP_ERR_NVS_NOT_FOUND if not present
+ */
+esp_err_t platform_nvs_load_emergency_phone(char *phone, size_t phone_len);
+
+/**
  * @brief Clear WiFi credentials from NVS
  *
  * @return ESP_OK on success

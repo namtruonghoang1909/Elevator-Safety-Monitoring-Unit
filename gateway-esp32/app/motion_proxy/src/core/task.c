@@ -10,6 +10,7 @@
 #include "system_registry.h"
 #include "esmu_protocol.h"
 #include "telemetry_service.h"
+#include "system_event.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -47,6 +48,7 @@ static void can_listener_task(void *pvParameters) {
                     memcpy(&pkt, data, 8);
                     ESP_LOGW(TAG, "!! EMERGENCY !! Code: %d Sev: %d Val: %d TS: %d", pkt.fault_code, pkt.severity, pkt.fault_value, pkt.timestamp);
                     system_registry_update_from_protocol_emergency(&pkt);
+                    system_report_event(SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED);
                     telemetry_service_force_publish();
                     break;
                 }
@@ -93,8 +95,8 @@ static void watchdog_task(void *pvParameters) {
         last = s_ctx.last_heartbeat_ms;
         xSemaphoreGive(s_ctx.lock);
 
-        // If no heartbeat for 3 seconds, mark as offline
-        if (last != 0 && (now - last) > 3000) {
+        // If no heartbeat for defined timeout, mark as offline
+        if (last != 0 && (now - last) > CAN_TIMEOUT_MS_EDGE_OFFLINE) {
             system_registry_update_edge_status(false);
             system_registry_set_state(SYSTEM_STATE_ERROR);
             system_registry_set_subtext("COMMUNICATION LOST");

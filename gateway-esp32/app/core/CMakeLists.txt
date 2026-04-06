@@ -8,4 +8,4 @@ set(srcs
 
 idf_component_register(SRCS ${srcs}
                     INCLUDE_DIRS "."
-                    REQUIRES registry board_pins connectivity_manager cellular_service telemetry_service motion_proxy can_platform i2c_platform uart_platform st7789)
+                    REQUIRES registry board_pins connectivity_manager cellular_service telemetry_service motion_proxy can_platform i2c_platform uart_platform st7789 display spiffs)

@@ -1,19 +1,24 @@
-# Session Checkpoint - April 1, 2026 (HAL Refactor Complete)
+# Session Checkpoint - April 6, 2026 (Diagnostic Dashboard Backend Completed)
 
 ## Current Working Context
-- **HAL Standardized**: The Gateway ESP32 project now uses a consistent HAL layer with `hal_` prefixed functions.
-- **Namespace Safety**: Components moved to `components/bsp_hal` to avoid collisions with ESP-IDF internal components.
-- **Build Status**: **STABLE**. Verified with `C:\Users\HOANGNAM\.platformio\penv\Scripts\platformio.exe run`.
-- **Drivers Updated**: `st7789`, `ssd1306`, and `sim_a7680c` are all ported to the new HAL.
+- **Modern Diagnostic Dashboard**: Backend implementation is complete. `web_api_handlers.c` provides a `/api/status` JSON endpoint using `cJSON`. `web_server.c` registers the endpoint. 
+- **Frontend Assets**: Restored to root `data/` folder for PlatformIO compatibility. Assets are now fully functional and uploaded to SPIFFS.
+- **FS Upload**: **SUCCESSFUL**. Verified with `pio run --target uploadfs`.
+- **Build Status**: **STABLE**. Firmware builds successfully with `json` dependency.
 
 ## Task Status
-- [x] Rename `components/hal` -> `components/bsp_hal`
-- [x] Standardize function naming: `hal_i2c_*`, `hal_spi_*`, `hal_can_*`, `hal_uart_*`, `hal_pwm_*`
-- [x] Update all project-wide includes and function calls
-- [x] Fix CMake dependency chains
-- [x] Verify project-wide build stability
+- [x] Integrated `cJSON` for JSON serialization.
+- [x] Implemented `web_api_status_json_handler` in `web_api_handlers.c`.
+- [x] Registered `/api/status` URI in `web_server_start`.
+- [x] Updated `index.html` with Dashboard + Settings SPA UI.
+- [x] Updated `style.css` with professional Dark Mode styling.
+- [x] Updated `script.js` with polling and DOM update logic.
+- [ ] **NEXT**: Flash firmware and run `pio run --target uploadfs` to upload web assets.
+- [ ] **NEXT**: Verify real-time updates on the web interface.
 
-## Next Steps
-1. **Display Service**: Create a high-level `display_service` to manage the ST7789 TFT (Widgets, Dashboard, Color UI).
-2. **Boot Integration**: Register `display_service` in `system_boot.c`.
-3. **UI Implementation**: Build the real-time status dashboard (WiFi RSSI, Edge Heartbeat, Vibration metrics).
+## Instructions for Next Session
+1. Flash the ESP32: `pio run --target upload`.
+2. Upload the filesystem: `pio run --target uploadfs`.
+3. Open the ESP32's IP in a browser.
+4. Verify that clicking "Settings" shows the config form and "Dashboard" shows live telemetry.
+5. Check that the dashboard updates every 1000ms.

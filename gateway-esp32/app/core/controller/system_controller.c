@@ -2,6 +2,7 @@
 #include "system_config.h"
 #include "system_event.h"
 #include "system_registry.h"
+#include "cellular_service.h"
 #include "boot/hardware/hardware_boot.h"
 #include "boot/system_boot.h"
 #include "heart_beat/heartbeat.h"
@@ -86,6 +87,27 @@ static void system_event_handler(system_event_t new_event) {
             }
             break;
 
+        case SYSTEM_EVENT_ELEVATOR_FAULT_DETECTED:
+            {
+                system_status_registry_t snap;
+                system_registry_get_snapshot(&snap);
+                
+                ESP_LOGW(TAG, "!! FAULT DETECTED !! Triggering Alerts...");
+                
+                if (strlen(snap.emergency_phone) > 0) {
+                    char msg[128];
+                    snprintf(msg, sizeof(msg), "ESMU ALERT: Elevator Fault! Code: %d, Health: %s", 
+                             snap.last_fault_code, snap.elevator_health);
+                    
+                    cellular_service_send_sms(snap.emergency_phone, msg);
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                    cellular_service_make_call(snap.emergency_phone);
+                } else {
+                    ESP_LOGE(TAG, "No emergency phone configured!");
+                }
+            }
+            break;
+
         default:
             break;
     }
@@ -129,9 +151,7 @@ esp_err_t system_core_init(void) {
         ESP_LOGE(TAG, "System controller task failed");
         return ESP_FAIL;
     }
-
-
-
+    
     return ESP_OK;
 }
 
