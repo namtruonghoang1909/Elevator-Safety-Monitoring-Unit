@@ -52,6 +52,18 @@ The ESMU utilizes a **Dual-Node Distributed Architecture** connected via an indu
 | **Build Tools** | PlatformIO (Gateway), STM32CubeIDE / Makefile (Edge) |
 | **Language** | C (Embedded) |
 
+## 🔌 Hardware Components
+
+| Category | Component | Description |
+|-----------|------------|-------------|
+| **Controllers** | ESP32-WROOM-32D | Gateway Node: Connectivity & UI Orchestrator |
+| | STM32F103C8T6 | Edge Node: Real-time Sensor Processing |
+| **Sensors** | MPU6050 | 6-axis Accelerometer & Gyroscope |
+| **Displays** | ST7789 (240x240) | 1.3" IPS LCD for Gateway Dashboard |
+| | SSD1306 (128x64) | 0.96" OLED for Edge Node Diagnostics |
+| **Connectivity**| SIM A7680C | 4G LTE Cat-1 Module for Emergency Alerts |
+| | SN65HVD230 | High-speed CAN Bus Transceivers |
+
 ## 📂 Project Structure
 ```text
 ├── agent/                # AI Agent context, rules, and project roadmap
@@ -70,4 +82,3 @@ The system monitors four primary fault conditions:
 4. **Emergency Stop**: Rapid deceleration detection filtered through a 5-cycle debounce window.
 
 ---
-**Maintained by the ESMU Development Team.**
