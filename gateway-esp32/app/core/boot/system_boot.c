@@ -11,6 +11,7 @@
 #include "motion_proxy.h"
 #include "telemetry_service.h"
 #include "cellular_service.h"
+#include "display.h"
 #include "can_platform.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -26,12 +27,12 @@ static void boot_task(void *pvParameters) {
     ESP_LOGI(TAG, "Starting ESMU Boot Sequence...");
     esp_err_t ret = ESP_OK;
 
-    // 1. Display Service
-    system_registry_set_subtext("Display Init...");
+    // 1. Start Display Task
+    system_registry_set_subtext("Display Start...");
+    ret = display_start();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Display service failed: %s", esp_err_to_name(ret));
-        system_registry_set_subtext("ERR: DISPLAY FAIL");
-        // We might continue or fail here depending on criticality
+        ESP_LOGE(TAG, "Display start failed: %s", esp_err_to_name(ret));
+        system_registry_set_subtext("ERR: DISP TASK");
     }
     system_registry_set_subtext("Booting ESMU...");
     vTaskDelay(pdMS_TO_TICKS(500));
