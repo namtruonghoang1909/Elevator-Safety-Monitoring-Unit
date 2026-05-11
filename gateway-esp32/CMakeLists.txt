@@ -15,6 +15,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/middleware/connectivity/mqtt_manager"
     "${CMAKE_CURRENT_SOURCE_DIR}/middleware/connectivity/wifi_manager"
     "${CMAKE_CURRENT_SOURCE_DIR}/middleware/connectivity/web_server"
+    "${CMAKE_CURRENT_SOURCE_DIR}/middleware/connectivity/ota_manager"
     "${CMAKE_CURRENT_SOURCE_DIR}/middleware/communication/telemetry_service"
     "${CMAKE_CURRENT_SOURCE_DIR}/middleware/communication/cellular_service"
     "${CMAKE_CURRENT_SOURCE_DIR}/app/registry"
