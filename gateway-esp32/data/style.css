@@ -113,3 +113,25 @@ button:hover { filter: brightness(1.1); }
 /* Status Colors */
 .status-good { color: var(--success); }
 .status-bad { color: var(--danger); }
+
+/* OTA Styles */
+.progress-bar {
+    width: 100%;
+    background-color: #334155;
+    border-radius: 0.5rem;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+.progress-fill {
+    height: 100%;
+    background-color: var(--success);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+.btn-warning {
+    background-color: #f59e0b;
+}
+.btn-warning:hover {
+    background-color: #d97706;
+}
