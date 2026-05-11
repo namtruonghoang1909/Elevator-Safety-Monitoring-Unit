@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "web_server.c" "web_api_handlers.c"
-    INCLUDE_DIRS "include"
-    REQUIRES esp_http_server log spiffs registry json
+    INCLUDE_DIRS "include" "${CMAKE_SOURCE_DIR}/middleware/connectivity/ota_manager/include"
+    REQUIRES esp_http_server log spiffs registry json ota_manager
 )
