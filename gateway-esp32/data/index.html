@@ -97,6 +97,23 @@
                     <button type='submit'>Save & Apply</button>
                 </form>
             </div>
+
+            <!-- OTA Update Card -->
+            <div class="card config-card" style="margin-top: 2rem;">
+                <h3>Firmware Update (OTA)</h3>
+                <p>Provide the HTTPS URL to the firmware binary (.bin).</p>
+                <div class="input-group">
+                    <label>Firmware URL</label>
+                    <input type="url" id="ota-url" placeholder="https://..." value="https://">
+                </div>
+                <button id="btn-ota" class="btn-warning">Start Update</button>
+                <div id="ota-progress-container" style="display: none; margin-top: 1rem;">
+                    <div class="progress-bar">
+                        <div id="ota-bar" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <small id="ota-status">Starting update...</small>
+                </div>
+            </div>
         </div>
     </div>
 

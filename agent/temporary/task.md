@@ -1,43 +1,28 @@
-# Task: Modern Diagnostic Dashboard Implementation
+# Task: Implement OTA Update Feature
 
-## Objective
-Transform the simple WiFi provisioning page into a live telemetry dashboard that shows real-time vibration, motion state, and network health.
+## 1. Research & Design
+- [x] Verify actual flash size and adjust partition table.
+- [x] Design `ota_manager` component architecture.
 
-## Todo List
+## 2. Partition Table Update
+- [x] Modify `gateway-esp32/partitions.csv` to include `ota_0` and `ota_1`.
+- [x] Adjust SPIFFS and App partition sizes to fit 4MB flash.
 
-### 1. Backend Implementation (ESP32)
-- [ ] **Create `web_api_handlers.c`**:
-    - [ ] Implement `web_api_status_json_handler` to serialize `system_status_registry_t` snapshot into a JSON string using `cJSON`.
-    - [ ] Implement other API-related handlers if needed (e.g., config fetch).
-- [ ] **Modify `web_server.c`**:
-    - [ ] Declare the external status handler from `web_api_handlers.c`.
-    - [ ] Define `status_uri` struct for `/api/status`.
-    - [ ] Register `status_uri` in `web_server_start`.
-- [ ] **Update `CMakeLists.txt`**:
-    - [ ] Add `web_api_handlers.c` to the `SRCS` list.
-- [ ] **Verification**:
-    - [ ] Build and flash the firmware.
-    - [ ] Access `http://<ip>/api/status` to verify JSON output.
+## 3. OTA Manager Implementation (Middleware)
+- [x] Create `gateway-esp32/middleware/connectivity/ota_manager/include/ota_manager.h`.
+- [x] Create `gateway-esp32/middleware/connectivity/ota_manager/ota_manager.c`.
+- [x] Implement `ota_manager_start(const char *url)` using `esp_https_ota`.
+- [x] Implement event callbacks for progress and status reporting.
 
-### 2. Frontend Implementation (Web Assets)
-- [ ] **Update `index.html`**:
-    - [ ] Implement a **Single Page Application (SPA)** structure with two main views: `dashboard-view` and `config-view`.
-    - [ ] Add a navigation bar (top or side) to switch between "Live Monitoring" and "System Settings".
-    - [ ] Dashboard View: Responsive grid UI with "cards" for different metrics (Motion, Network, System).
-    - [ ] Config View: Port existing WiFi/Phone setup form here.
-- [ ] **Update `style.css`**:
-    - [ ] Implement a professional "Dark Mode" dashboard styling.
-    - [ ] Add styles for navigation tabs (Active/Inactive states).
-    - [ ] Add styles for cards, progress bars, and status indicators.
-- [ ] **Update `script.js`**:
-    - [ ] Add view switching logic (show/hide sections based on navigation clicks).
-    - [ ] Implement AJAX polling (using `fetch`) to get `/api/status` every 1000ms.
-    - [ ] Update the DOM with received data.
-- [ ] **Verification**:
-    - [ ] Run `pio run --target uploadfs` to upload new assets.
-    - [ ] Open the web interface and verify real-time updates.
+## 4. Web API Integration
+- [x] Update `gateway-esp32/middleware/connectivity/web_server/web_api_handlers.c` to add `/api/ota` POST handler.
+- [x] Register the new URI in `web_server.c`.
 
-### 3. Documentation & Cleanup
-- [ ] Update `agent/context/roadmap.md` and `agent/context/checkpoint.md`.
-- [ ] Update `gateway-esp32/middleware/connectivity/web_server/README.md` if it exists.
-- [ ] Record the changes in `agent/context/memory.md`.
+## 5. UI Implementation
+- [x] Update `gateway-esp32/data/index.html` to add OTA update section in Settings.
+- [x] Update `gateway-esp32/data/script.js` to handle OTA trigger and show progress.
+
+## 6. Verification
+- [x] Build and flash the new firmware with the updated partition table.
+- [x] Upload the updated filesystem.
+- [ ] Test OTA update using a locally hosted firmware binary.

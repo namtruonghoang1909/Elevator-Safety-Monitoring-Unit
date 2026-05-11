@@ -175,11 +175,19 @@ static const httpd_uri_t post_uri = {
 };
 
 extern esp_err_t web_api_status_json_handler(httpd_req_t *req);
+extern esp_err_t web_api_ota_post_handler(httpd_req_t *req);
 
 static const httpd_uri_t status_uri = {
     .uri       = "/api/status",
     .method    = HTTP_GET,
     .handler   = web_api_status_json_handler,
+    .user_ctx  = NULL
+};
+
+static const httpd_uri_t ota_uri = {
+    .uri       = "/api/ota",
+    .method    = HTTP_POST,
+    .handler   = web_api_ota_post_handler,
     .user_ctx  = NULL
 };
 
@@ -196,6 +204,7 @@ esp_err_t web_server_start(void) {
         httpd_register_uri_handler(server, &js_uri);
         httpd_register_uri_handler(server, &post_uri);
         httpd_register_uri_handler(server, &status_uri);
+        httpd_register_uri_handler(server, &ota_uri);
         return ESP_OK;
     }
 
