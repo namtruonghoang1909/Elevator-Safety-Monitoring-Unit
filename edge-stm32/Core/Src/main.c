@@ -12,8 +12,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bsp_i2c.h"
-#include "bsp_can.h"
+#include "i2c_platform.h"
+#include "can_platform.h"
 #include "projdefs.h"
 #include "system.h"
 #include "edge_logger.h"
@@ -94,8 +94,8 @@ int main(void)
   MX_CAN_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  bsp_i2c_init();
-  bsp_can_init();
+  platform_i2c_init();
+  platform_can_init();
 
   // Create the DefaultTask (Startup Task) using Native FreeRTOS
   xTaskCreate(StartDefaultTask, "DefaultTask", 256, NULL, tskIDLE_PRIORITY + 1, &defaultTaskHandle);
