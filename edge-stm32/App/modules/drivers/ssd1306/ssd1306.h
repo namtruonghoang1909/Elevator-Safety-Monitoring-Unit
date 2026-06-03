@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "bsp_i2c.h"
+#include "i2c_platform.h"
 
 // ─────────────────────────────────────────────
 // Display Constants
@@ -44,15 +44,15 @@ typedef struct {
 // Core APIs
 // ─────────────────────────────────────────────
 
-bsp_i2c_status_t ssd1306_init(const ssd1306_config_t *cfg);
-bsp_i2c_status_t ssd1306_display_on(void);
-bsp_i2c_status_t ssd1306_display_off(void);
-bsp_i2c_status_t ssd1306_set_contrast(uint8_t contrast);
-bsp_i2c_status_t ssd1306_invert_display(bool invert);
-bsp_i2c_status_t ssd1306_clear(void);
-bsp_i2c_status_t ssd1306_fill_screen(uint8_t color);
-bsp_i2c_status_t ssd1306_set_cursor(uint8_t page, uint8_t col);
-bsp_i2c_status_t ssd1306_write_data(const uint8_t *data, size_t len);
-bsp_i2c_status_t ssd1306_write_page(uint8_t page, const uint8_t *data);
-bsp_i2c_status_t ssd1306_write_char(char c, uint8_t page, uint8_t col);
-bsp_i2c_status_t ssd1306_write_string(const char *str, uint8_t page, uint8_t col);
+platform_i2c_status_t ssd1306_init(const ssd1306_config_t *cfg);
+platform_i2c_status_t ssd1306_display_on(void);
+platform_i2c_status_t ssd1306_display_off(void);
+platform_i2c_status_t ssd1306_set_contrast(uint8_t contrast);
+platform_i2c_status_t ssd1306_invert_display(bool invert);
+platform_i2c_status_t ssd1306_clear(void);
+platform_i2c_status_t ssd1306_fill_screen(uint8_t color);
+platform_i2c_status_t ssd1306_set_cursor(uint8_t page, uint8_t col);
+platform_i2c_status_t ssd1306_write_data(const uint8_t *data, size_t len);
+platform_i2c_status_t ssd1306_write_page(uint8_t page, const uint8_t *data);
+platform_i2c_status_t ssd1306_write_char(char c, uint8_t page, uint8_t col);
+platform_i2c_status_t ssd1306_write_string(const char *str, uint8_t page, uint8_t col);

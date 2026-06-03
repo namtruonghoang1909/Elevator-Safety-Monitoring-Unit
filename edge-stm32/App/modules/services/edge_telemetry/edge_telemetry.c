@@ -5,7 +5,7 @@
 
 #include "edge_logger.h"
 #include "edge_telemetry.h"
-#include "bsp_can.h"
+#include "can_platform.h"
 #include "protocol_types.h"
 #include "system_registry.h"
 #include "esmu_protocol.h"
@@ -32,28 +32,27 @@ static void send_health_packet(void) {
     packet.motion_state = (uint8_t)data.metrics.state;
     packet.health_status = (uint8_t)data.metrics.health_status;
 
-    bsp_can_send(CAN_ID_ELE_HEALTH, (uint8_t*)&packet, sizeof(packet));
+    platform_can_send(CAN_ID_ELE_HEALTH, (uint8_t*)&packet, sizeof(packet));
 }
 
 static void send_heartbeat_packet(void) {
     system_registry_t reg;
-    if (!system_registry_read(&reg)) return; 
+    if (!system_registry_read(&reg)) return;
 
     edge_heartbeat_t packet = {0};
     edge_state_t protocol_state = reg.is_monitoring_active ? EDGE_STATE_RUNNING : EDGE_STATE_IDLE;
-    
+
     edge_health_t health = EDGE_HEALTH_OK;
     if (!mpu6050_test_connection()) health = EDGE_HEALTH_SENSOR_LOST;
 
     packet.edge_health = (uint8_t)health;
     packet.edge_state = (uint8_t)protocol_state;
     packet.health_status = (uint8_t)reg.metrics.health_status;
-    packet.error_code = 0; 
+    packet.error_code = 0;
     packet.uptime_sec = (uint32_t)(xTaskGetTickCount() / configTICK_RATE_HZ);
 
-    bsp_can_send(CAN_ID_EDGE_HEALTH, (uint8_t*)&packet, sizeof(packet));
+    platform_can_send(CAN_ID_EDGE_HEALTH, (uint8_t*)&packet, sizeof(packet));
 }
-
 void edge_telemetry_broadcast_emergency(fault_code_t fault, uint8_t severity, uint8_t motion_state, int16_t value, uint16_t timestamp) {
     uint32_t now = xTaskGetTickCount();
     
@@ -74,7 +73,7 @@ void edge_telemetry_broadcast_emergency(fault_code_t fault, uint8_t severity, ui
     packet.timestamp = timestamp;
     
     edge_logger_printf("T-SEND: %d", (int)fault);
-    bsp_can_send(CAN_ID_ELE_EMERGENCY, (uint8_t*)&packet, sizeof(packet));
+    platform_can_send(CAN_ID_ELE_EMERGENCY, (uint8_t*)&packet, sizeof(packet));
 }
 
 

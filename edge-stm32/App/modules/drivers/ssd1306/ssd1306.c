@@ -115,24 +115,24 @@ static const uint8_t FONT_5X7[] = {
 // Private helpers
 // ─────────────────────────────────────────────
 
-static bsp_i2c_status_t ssd1306_send_command(uint8_t cmd) {
+static platform_i2c_status_t ssd1306_send_command(uint8_t cmd) {
     uint8_t buf[2] = {0x00, cmd};
-    return bsp_i2c_write_bytes(g_ssd1306_addr, buf, 2);
+    return platform_i2c_write_bytes(g_ssd1306_addr, buf, 2);
 }
 
-static bsp_i2c_status_t ssd1306_send_commands(const uint8_t *cmds, size_t len) {
+static platform_i2c_status_t ssd1306_send_commands(const uint8_t *cmds, size_t len) {
     uint8_t buf[len + 1];
     buf[0] = 0x00;
     memcpy(&buf[1], cmds, len);
-    return bsp_i2c_write_bytes(g_ssd1306_addr, buf, len + 1);
+    return platform_i2c_write_bytes(g_ssd1306_addr, buf, len + 1);
 }
 
 // ─────────────────────────────────────────────
 // Core APIs
 // ─────────────────────────────────────────────
 
-bsp_i2c_status_t ssd1306_init(const ssd1306_config_t *cfg) {
-    if (cfg == NULL) return BSP_I2C_ERROR;
+platform_i2c_status_t ssd1306_init(const ssd1306_config_t *cfg) {
+    if (cfg == NULL) return PLATFORM_I2C_ERROR;
     g_ssd1306_addr = cfg->address;
 
     HAL_Delay(100);
@@ -156,71 +156,71 @@ bsp_i2c_status_t ssd1306_init(const ssd1306_config_t *cfg) {
         0xAF                // Display ON
     };
 
-    bsp_i2c_status_t ret = ssd1306_send_commands(init_sequence, sizeof(init_sequence));
-    if (ret != BSP_I2C_OK) return ret;
+    platform_i2c_status_t ret = ssd1306_send_commands(init_sequence, sizeof(init_sequence));
+    if (ret != PLATFORM_I2C_OK) return ret;
 
     return ssd1306_clear();
 }
 
-bsp_i2c_status_t ssd1306_display_on(void) { return ssd1306_send_command(0xAF); }
-bsp_i2c_status_t ssd1306_display_off(void) { return ssd1306_send_command(0xAE); }
+platform_i2c_status_t ssd1306_display_on(void) { return ssd1306_send_command(0xAF); }
+platform_i2c_status_t ssd1306_display_off(void) { return ssd1306_send_command(0xAE); }
 
-bsp_i2c_status_t ssd1306_clear(void) {
-    bsp_i2c_status_t ret;
+platform_i2c_status_t ssd1306_clear(void) {
+    platform_i2c_status_t ret;
 
     // Set Horizontal addressing mode range
     ret = ssd1306_send_command(0x21); // Column address
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(0x00); // Start
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(127);  // End
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
 
     ret = ssd1306_send_command(0x22); // Page address
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(0x00); // Start
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(0x07); // End
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
 
     uint8_t zero_line[128] = {0};
     for (int i = 0; i < 8; i++) {
         ssd1306_set_cursor(i, 0);
         ssd1306_write_data(zero_line, 128);
     }
-    return BSP_I2C_OK;
+    return PLATFORM_I2C_OK;
 }
 
-bsp_i2c_status_t ssd1306_set_cursor(uint8_t page, uint8_t col) {
-    bsp_i2c_status_t ret;
+platform_i2c_status_t ssd1306_set_cursor(uint8_t page, uint8_t col) {
+    platform_i2c_status_t ret;
     ret = ssd1306_send_command(0xB0 | (page & 0x07));
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(0x00 | (col & 0x0F));
-    if (ret != BSP_I2C_OK) return ret;
+    if (ret != PLATFORM_I2C_OK) return ret;
     ret = ssd1306_send_command(0x10 | ((col >> 4) & 0x0F));
     return ret;
 }
 
-bsp_i2c_status_t ssd1306_write_data(const uint8_t *data, size_t len) {
+platform_i2c_status_t ssd1306_write_data(const uint8_t *data, size_t len) {
     uint8_t buf[len + 1];
     buf[0] = 0x40; // Data mode
     memcpy(&buf[1], data, len);
-    return bsp_i2c_write_bytes(g_ssd1306_addr, buf, len + 1);
+    return platform_i2c_write_bytes(g_ssd1306_addr, buf, len + 1);
 }
 
-bsp_i2c_status_t ssd1306_write_char(char c, uint8_t page, uint8_t col) {
+platform_i2c_status_t ssd1306_write_char(char c, uint8_t page, uint8_t col) {
     if (c < 32 || c > 126) c = '?';
     ssd1306_set_cursor(page, col);
     return ssd1306_write_data(&FONT_5X7[(c - 32) * 5], 5);
 }
 
-bsp_i2c_status_t ssd1306_write_string(const char *str, uint8_t page, uint8_t col) {
-    bsp_i2c_status_t ret = BSP_I2C_OK;
+platform_i2c_status_t ssd1306_write_string(const char *str, uint8_t page, uint8_t col) {
+    platform_i2c_status_t ret = PLATFORM_I2C_OK;
     uint8_t current_col = col;
     while (*str) {
         if (current_col + 6 > SSD1306_WIDTH) break;
         ret = ssd1306_write_char(*str++, page, current_col);
-        if (ret != BSP_I2C_OK) return ret;
+        if (ret != PLATFORM_I2C_OK) return ret;
         current_col += 6;
     }
     return ret;

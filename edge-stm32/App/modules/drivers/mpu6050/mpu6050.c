@@ -4,7 +4,7 @@
  */
 
 #include "mpu6050.h"
-#include "bsp_i2c.h"
+#include "i2c_platform.h"
 #include <string.h>
 
 // ─────────────────────────────────────────────
@@ -21,7 +21,7 @@
 
 bool mpu6050_test_connection(void) {
     uint8_t who_am_i = 0;
-    if (bsp_i2c_read_reg(MPU_ADDR, MPU_WHO_AM_I, &who_am_i) != BSP_I2C_OK) {
+    if (platform_i2c_read_reg(MPU_ADDR, MPU_WHO_AM_I, &who_am_i) != PLATFORM_I2C_OK) {
         return false;
     }
     return (who_am_i == MPU_WHO_AM_I_VAL);
@@ -29,19 +29,19 @@ bool mpu6050_test_connection(void) {
 
 bool mpu6050_init(void) {
     // 1. Wake up (Power Mgmt 1) - Clear Sleep, Set Clock to Gyro X
-    if (bsp_i2c_write_reg(MPU_ADDR, MPU_PWR_MGMT_1, 0x01) != BSP_I2C_OK) return false;
+    if (platform_i2c_write_reg(MPU_ADDR, MPU_PWR_MGMT_1, 0x01) != PLATFORM_I2C_OK) return false;
 
     // 2. Sample Rate Divider = 9 (100Hz if Gyro Out is 1kHz)
-    if (bsp_i2c_write_reg(MPU_ADDR, MPU_SMPLRT_DIV, 0x09) != BSP_I2C_OK) return false;
+    if (platform_i2c_write_reg(MPU_ADDR, MPU_SMPLRT_DIV, 0x09) != PLATFORM_I2C_OK) return false;
 
     // 3. Config (DLPF = 3, ~44Hz bandwidth)
-    if (bsp_i2c_write_reg(MPU_ADDR, MPU_CONFIG, 0x03) != BSP_I2C_OK) return false;
+    if (platform_i2c_write_reg(MPU_ADDR, MPU_CONFIG, 0x03) != PLATFORM_I2C_OK) return false;
 
     // 4. Gyro Config (+/- 1000 deg/s)
-    if (bsp_i2c_write_reg(MPU_ADDR, MPU_GYRO_CONFIG, 0x10) != BSP_I2C_OK) return false;
+    if (platform_i2c_write_reg(MPU_ADDR, MPU_GYRO_CONFIG, 0x10) != PLATFORM_I2C_OK) return false;
 
     // 5. Accel Config (+/- 8g)
-    if (bsp_i2c_write_reg(MPU_ADDR, MPU_ACCEL_CONFIG, 0x10) != BSP_I2C_OK) return false;
+    if (platform_i2c_write_reg(MPU_ADDR, MPU_ACCEL_CONFIG, 0x10) != PLATFORM_I2C_OK) return false;
 
     return mpu6050_test_connection();
 }
@@ -50,7 +50,7 @@ bool mpu6050_read_raw(mpu6050_raw_data_t *raw) {
     uint8_t buffer[14];
     
     // Burst read 14 bytes starting from ACCEL_XOUT_H
-    if (bsp_i2c_read_consecutive_regs(MPU_ADDR, MPU_ACCEL_XOUT_H, buffer, 14) != BSP_I2C_OK) {
+    if (platform_i2c_read_consecutive_regs(MPU_ADDR, MPU_ACCEL_XOUT_H, buffer, 14) != PLATFORM_I2C_OK) {
         return false;
     }
 

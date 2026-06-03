@@ -60,15 +60,13 @@ This file tracks the high-level progress of the Elevator Safety Monitoring Unit 
   - [x] Integration: Emergency phone number configuration via Web UI.
   - [x] Integration: Automatic SMS/Call alerts on fault detection.
   - [ ] Verification: Real-world network registration (Pending HW Power Fix).
-- **Display Service**
-  - [x] SSD1306 Driver (I2C) - [DEPRECATED/STABLE].
-  - [x] Edge Logger (Diagnostic OLED Mode) - **ACTIVE**.
-  - [x] ST7789 Driver (SPI) - **COMPLETED**.
-  - [x] SPI HAL Component (DMA Support) - **COMPLETED**.
-  - [x] PWM HAL Component (Backlight) - **COMPLETED**.
-  - [x] UI Adaptation for Color/Higher Resolution (Dashboard & Config Screen).
-  - [x] Modern Diagnostic Dashboard (Web) - **BACKEND COMPLETED**.
-  - [ ] Modern Diagnostic Dashboard (Web) - **FRONTEND IN-PROGRESS**.
+- **Modern Diagnostic Dashboard (Web)**
+  - [x] Backend Implementation: `/api/status` JSON endpoint. [COMPLETE]
+  - [x] Frontend Assets: Dashboard + Settings SPA UI. [COMPLETE]
+  - [x] OTA Integration: Real-time progress tracking. [COMPLETE]
+- **OTA Update Feature**
+  - [x] Implementation: HTTPS-based A/B partition updates. [COMPLETE]
+  - [x] Integration: Web API and Dashboard UI. [COMPLETE]
 - **Fault Detector**
   - [ ] Implementation: Shake and emergency stop logic.
   - [ ] Verification: Simulated fault detection tests.
