@@ -8,17 +8,20 @@
 #include "system_registry.h"
 #include "edge_logger.h"
 #include "edge_telemetry.h"
+#include "motion_filters.h"
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
 
 #define STATUS_LOG_INTERVAL_MS   500
 #define EDGE_LOG_FAULT_INTERVAL_MS 500
+#define VIBRATION_EMA_ALPHA      0.40f
 
 static TaskHandle_t motionTaskHandle = NULL;
 static motion_calibration_t calib = {0};
 static kinematics_data_t current_kinematics = {0};
 static detector_result_t current_detectors = {0};
+static float filtered_vibration = 0.0f;
 
 static uint32_t last_status_log_tick = 0;
 static uint32_t last_edge_fault_log_tick = 0;
@@ -92,7 +95,9 @@ static void motion_task(void *argument) {
             if (abs(dy) < 400) dy = 0;
             if (abs(dz) < 400) dz = 0;
 
-            reg.metrics.vibration = (float)(abs(dx) + abs(dy) + abs(dz)) / 32.8f;
+            float raw_vibration = (float)(abs(dx) + abs(dy) + abs(dz)) / 32.8f;
+            filtered_vibration = motion_filter_ema(raw_vibration, filtered_vibration, VIBRATION_EMA_ALPHA);
+            reg.metrics.vibration = filtered_vibration;
 
             float score = 100.0f - (reg.metrics.vibration * 6.6f);
             reg.metrics.health_score = (score < 0) ? 0 : (uint8_t)score;
